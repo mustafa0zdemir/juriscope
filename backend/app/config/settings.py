@@ -24,7 +24,7 @@ class Settings(BaseSettings):
         "http://localhost:3000",
     ]
 
-    database_url: str = "postgresql+asyncpg://user:password@localhost:5432/sozlesme_db"
+    database_url: str = "postgresql+psycopg2://postgres:postgres@postgres:5432/contract_analysis"
 
     upload_dir: str = "uploads"
     max_upload_size_mb: int = 50
