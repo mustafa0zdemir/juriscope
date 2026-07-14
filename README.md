@@ -96,12 +96,15 @@ Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ### Endpoint'ler
 
-| Method | Endpoint              | Açıklama                        |
-|--------|-----------------------|---------------------------------|
-| GET    | `/api/v1/health`      | Servis durum kontrolü           |
-| POST   | `/api/v1/auth/login`  | JWT token al                    |
-| GET    | `/api/v1/auth/me`     | Giriş yapan kullanıcı bilgisi   |
-| POST   | `/api/v1/upload`      | Dosya yükleme                   |
+| Method | Endpoint | Açıklama |
+|--------|----------|----------|
+| GET | `/api/v1/health` | Servis durum kontrolü |
+| POST | `/api/v1/auth/login` | JWT token al |
+| GET | `/api/v1/auth/me` | Giriş yapan kullanıcı bilgisi |
+| POST | `/api/v1/upload` | Dosya yükleme (PDF, DOC, DOCX) ve sözleşme kaydı |
+| GET | `/api/v1/contracts` | Kullanıcının sözleşmelerini listele |
+| GET | `/api/v1/contracts/{id}` | Tek sözleşme detayını getir |
+| DELETE | `/api/v1/contracts/{id}` | Sözleşmeyi ve dosyasını sil |
 
 ---
 
