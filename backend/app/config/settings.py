@@ -27,7 +27,8 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg2://postgres:postgres@postgres:5432/contract_analysis"
 
     upload_dir: str = "uploads"
-    max_upload_size_mb: int = 50
+    max_upload_size_mb: int = 20
+    allowed_extensions: list[str] = [".pdf", ".doc", ".docx"]
 
     @property
     def upload_path(self) -> Path:
