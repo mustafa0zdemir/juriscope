@@ -19,4 +19,10 @@ services:
       - DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/sozlesme_db
       - UPLOAD_DIR=uploads
       - MAX_UPLOAD_SIZE_MB=50
+    networks:
+      - legal-network
     restart: unless-stopped
+
+networks:
+  legal-network:
+    driver: bridge
