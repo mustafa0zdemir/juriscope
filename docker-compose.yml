@@ -16,13 +16,39 @@ services:
       - ACCESS_TOKEN_EXPIRE_MINUTES=30
       - ALGORITHM=HS256
       - CORS_ORIGINS=["http://localhost:5173","http://localhost:3000"]
-      - DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/sozlesme_db
+      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/contract_analysis
       - UPLOAD_DIR=uploads
       - MAX_UPLOAD_SIZE_MB=50
     networks:
       - legal-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=contract_analysis
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - legal-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d contract_analysis"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
 networks:
   legal-network:
     driver: bridge
+
+volumes:
+  postgres_data:
