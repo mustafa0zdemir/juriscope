@@ -5,6 +5,7 @@ pydantic-settings==2.9.1
 sqlalchemy==2.0.41
 alembic==1.16.2
 psycopg2-binary==2.9.10
+minio==7.2.15
 python-dotenv==1.1.0
 python-multipart==0.0.20
 PyJWT==2.10.1
