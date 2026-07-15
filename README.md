@@ -49,6 +49,22 @@ contracts/
 * **DocumentChunk**: Her chunk veritabanında index, token_count ve metadata ile tutuluyor.
 * **Metadata**: Start/end karakter pozisyonları, sayfa, dil, strateji gibi zengin metadata (JSONB).
 
+### Retrieval Pipeline (Semantic Search)
+* **Mimari**: `RetrievalProvider` soyut sınıfı, Open/Closed prensibine uygun genişletilebilir yapı.
+* **QdrantRetriever**: Cosine similarity ile Qdrant üzerinde anlamsal arama.
+* **Query Embedding**: Kullanıcı sorgusu aynı `BAAI/bge-m3` modeli ile embedding'e dönüştürülür.
+* **Güvenlik**: Her arama isteğinde Qdrant payload filtresi ile yalnızca kullanıcının kendi sözleşmeleri döner.
+* **Top-K**: Varsayılan 5, API üzerinden 1-20 arası değiştirilebilir.
+
+```
+POST /api/v1/search
+    → JWT Doğrulama
+    → query embedding (SentenceTransformerProvider)
+    → Qdrant payload filter (contract_id in kullanıcının_sözleşmeleri)
+    → Cosine similarity search
+    → SearchResponse [score, chunk_id, text, metadata, ...]
+```
+
 ### Document Processing Pipeline
 
 * **Background Tasks**: FastAPI `BackgroundTasks` ile asenkron PDF/DOCX işleme
@@ -151,8 +167,11 @@ Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
 | GET | `/api/v1/contracts/{id}/status` | İşleme durumunu getir |
 | GET | `/api/v1/contracts/{id}/chunks` | Sözleşmeye ait chunk'ları listele |
 | GET | `/api/v1/contracts/{id}/chunks/{chunk_id}` | Belirli chunk detayını getir |
+| POST | `/api/v1/contracts/{id}/embed` | Chunk'ları manuel embedding işlemine al |
+| GET | `/api/v1/contracts/{id}/embedding/status` | Embedding işlem durumunu getir |
 | GET | `/api/v1/contracts/{id}/download` | Dosyayı MinIO'dan indir |
 | DELETE | `/api/v1/contracts/{id}` | Sözleşmeyi ve MinIO dosyasını sil |
+| POST | `/api/v1/search` | Vektör DB'de anlamsal arama (Semantic Search) yap |
 
 ---
 
