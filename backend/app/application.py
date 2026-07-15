@@ -5,11 +5,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_v1_router
 from app.config.settings import settings
+from app.storage.providers.minio_provider import MinioProvider
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    settings.upload_path.mkdir(parents=True, exist_ok=True)
+    provider = MinioProvider()
+    provider.ensure_bucket()
     yield
 
 
