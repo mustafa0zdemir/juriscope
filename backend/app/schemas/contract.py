@@ -22,7 +22,7 @@ class ContractResponse(BaseModel):
     user_id: int
     original_filename: str
     stored_filename: str
-    file_path: str
+    storage_key: str
     mime_type: str
     file_size: int
     status: str

@@ -14,7 +14,7 @@ class ContractRepository:
         user_id: int,
         original_filename: str,
         stored_filename: str,
-        file_path: str,
+        storage_key: str,
         mime_type: str,
         file_size: int,
     ) -> Contract:
@@ -22,7 +22,7 @@ class ContractRepository:
             user_id=user_id,
             original_filename=original_filename,
             stored_filename=stored_filename,
-            file_path=file_path,
+            storage_key=storage_key,
             mime_type=mime_type,
             file_size=file_size,
         )

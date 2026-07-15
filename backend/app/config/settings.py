@@ -26,6 +26,12 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+psycopg2://postgres:postgres@postgres:5432/contract_analysis"
 
+    minio_endpoint: str = "minio:9000"
+    minio_access_key: str = "minioadmin"
+    minio_secret_key: str = "minioadmin"
+    minio_bucket_name: str = "contracts"
+    minio_secure: bool = False
+
     upload_dir: str = "uploads"
     max_upload_size_mb: int = 20
     allowed_extensions: list[str] = [".pdf", ".doc", ".docx"]
