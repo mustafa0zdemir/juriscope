@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile
+from fastapi import APIRouter, Depends, UploadFile, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from app.dependencies.auth import get_current_user
@@ -15,8 +15,9 @@ router = APIRouter(tags=["Upload"])
 @router.post("/upload", response_model=ContractCreateResponse)
 async def upload_file(
     file: UploadFile,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     storage: StorageService = Depends(get_storage),
 ):
-    return await upload_contract(db=db, file=file, current_user=current_user, storage=storage)
+    return await upload_contract(db=db, file=file, current_user=current_user, storage=storage, background_tasks=background_tasks)

@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import UploadFile
+from fastapi import UploadFile, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from app.config.settings import settings
@@ -10,11 +10,12 @@ from app.core.exceptions import BadRequestException, ForbiddenException, NotFoun
 from app.models.user import User
 from app.repositories.contract_repository import ContractRepository
 from app.schemas.contract import ContractCreateResponse, ContractListResponse, ContractResponse
+from app.services.document_processing_service import process_document_background_task
 from app.storage.storage_service import StorageService
 
 
 async def upload_contract(
-    db: Session, file: UploadFile, current_user: User, storage: StorageService
+    db: Session, file: UploadFile, current_user: User, storage: StorageService, background_tasks: BackgroundTasks
 ) -> ContractCreateResponse:
     if not file.filename:
         raise BadRequestException(detail="Filename is required")
@@ -50,6 +51,8 @@ async def upload_contract(
         mime_type=mime_type,
         file_size=file_size,
     )
+
+    background_tasks.add_task(process_document_background_task, contract.id)
 
     return ContractCreateResponse.model_validate(contract)
 

@@ -17,6 +17,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.config.settings import settings
 from app.database.base import Base
 import app.models.user  # noqa: F401 — modeli metadata'ya kaydet
+import app.models.contract  # noqa: F401
+import app.models.document_content  # noqa: F401
+import app.models.document_chunk  # noqa: F401
 
 config.set_main_option("sqlalchemy.url", settings.database_url)
 

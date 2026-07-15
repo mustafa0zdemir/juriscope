@@ -8,12 +8,21 @@ from app.dependencies.auth import get_current_user
 from app.dependencies.database import get_db
 from app.dependencies.storage import get_storage
 from app.models.user import User
-from app.schemas.contract import ContractListResponse, ContractResponse
+from app.schemas.chunk import DocumentChunkListResponse, DocumentChunkDetailResponse
+from app.schemas.contract import ContractListResponse, ContractResponse, ContractContentResponse, ContractStatusResponse
 from app.services.contract_service import (
     delete_contract,
     download_contract,
     get_contract,
     list_contracts,
+)
+from app.services.document_processing_service import (
+    get_contract_content,
+    get_contract_status,
+)
+from app.services.chunking_service import (
+    get_contract_chunks,
+    get_chunk_detail,
 )
 from app.storage.storage_service import StorageService
 
@@ -54,6 +63,43 @@ def get_single_contract(
     current_user: User = Depends(get_current_user),
 ):
     return get_contract(db=db, contract_id=contract_id, user_id=current_user.id)
+
+
+@router.get("/{contract_id}/content", response_model=ContractContentResponse)
+def get_single_contract_content(
+    contract_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return get_contract_content(db=db, contract_id=contract_id, user_id=current_user.id)
+
+
+@router.get("/{contract_id}/status", response_model=ContractStatusResponse)
+def get_single_contract_status(
+    contract_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return get_contract_status(db=db, contract_id=contract_id, user_id=current_user.id)
+
+
+@router.get("/{contract_id}/chunks", response_model=list[DocumentChunkListResponse])
+def get_contract_chunks_list(
+    contract_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return get_contract_chunks(db=db, contract_id=contract_id, user_id=current_user.id)
+
+
+@router.get("/{contract_id}/chunks/{chunk_id}", response_model=DocumentChunkDetailResponse)
+def get_contract_chunk_details(
+    contract_id: int,
+    chunk_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return get_chunk_detail(db=db, contract_id=contract_id, chunk_id=chunk_id, user_id=current_user.id)
 
 
 @router.delete("/{contract_id}", status_code=status.HTTP_204_NO_CONTENT)

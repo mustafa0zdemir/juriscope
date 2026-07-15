@@ -27,3 +27,5 @@ class Contract(Base):
     )
 
     user: Mapped["User"] = relationship("User", back_populates="contracts")  # type: ignore[name-defined]
+    content: Mapped["DocumentContent"] = relationship("DocumentContent", uselist=False, back_populates="contract", cascade="all, delete-orphan")  # type: ignore[name-defined]
+    chunks: Mapped[list["DocumentChunk"]] = relationship("DocumentChunk", back_populates="contract", cascade="all, delete-orphan")  # type: ignore[name-defined]

@@ -30,6 +30,19 @@ class ContractResponse(BaseModel):
     updated_at: datetime
 
 
+class ContractContentResponse(BaseModel):
+    contract_id: int
+    page_count: int
+    parser: str
+    language: str
+    text: str
+
+
+class ContractStatusResponse(BaseModel):
+    contract_id: int
+    status: str
+
+
 class ContractListResponse(BaseModel):
     items: list[ContractResponse]
     total: int

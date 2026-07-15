@@ -44,6 +44,19 @@ contracts/
               └── <uuid>.pdf     (storage_key formatı)
 ```
 
+### Chunking Pipeline
+* **ChunkStrategy**: Open/Closed prensibi ile `FixedSizeChunkStrategy` eklendi (1000 kar, 200 overlap).
+* **DocumentChunk**: Her chunk veritabanında index, token_count ve metadata ile tutuluyor.
+* **Metadata**: Start/end karakter pozisyonları, sayfa, dil, strateji gibi zengin metadata (JSONB).
+
+### Document Processing Pipeline
+
+* **Background Tasks**: FastAPI `BackgroundTasks` ile asenkron PDF/DOCX işleme
+* **Document Parser Mimarısi**: PyMuPDF ve python-docx ile abstraction üzerinden metin çıkarma
+* **DocumentContent**: Çıkarılan metinlerin ilişkisel veritabanında saklanması
+* **Status Yönetimi**: `uploaded` -> `parsing` -> `parsed` | `failed` durum makinesi
+* **Storage**: MinIO provider üzerinden dosya çekme
+
 ### Upload Akışı
 
 ```
@@ -133,6 +146,11 @@ Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
 | POST | `/api/v1/upload` | Dosya yükleme (PDF, DOC, DOCX) → MinIO |
 | GET | `/api/v1/contracts` | Kullanıcının sözleşmelerini listele |
 | GET | `/api/v1/contracts/{id}` | Tek sözleşme detayını getir |
+| GET | `/api/v1/contracts/{id}/content` | Sözleşme içeriğini getir |
+| GET | `/api/v1/contracts/{id}/content` | Sözleşme içeriğini getir |
+| GET | `/api/v1/contracts/{id}/status` | İşleme durumunu getir |
+| GET | `/api/v1/contracts/{id}/chunks` | Sözleşmeye ait chunk'ları listele |
+| GET | `/api/v1/contracts/{id}/chunks/{chunk_id}` | Belirli chunk detayını getir |
 | GET | `/api/v1/contracts/{id}/download` | Dosyayı MinIO'dan indir |
 | DELETE | `/api/v1/contracts/{id}` | Sözleşmeyi ve MinIO dosyasını sil |
 

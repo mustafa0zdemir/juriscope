@@ -6,6 +6,8 @@ services:
     container_name: sozlesme_analizi_backend
     ports:
       - "8000:8000"
+    volumes:
+      - ./backend:/app
     environment:
       - APP_NAME=Sozlesme Analizi Sistemi
       - APP_VERSION=0.1.0

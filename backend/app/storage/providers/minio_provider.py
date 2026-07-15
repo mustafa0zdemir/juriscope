@@ -1,5 +1,6 @@
 import io
 
+# pyrefly: ignore [missing-import]
 from minio import Minio
 from minio.error import S3Error
 
