@@ -6,8 +6,6 @@ services:
     container_name: sozlesme_analizi_backend
     ports:
       - "8000:8000"
-    volumes:
-      - ./backend/uploads:/app/uploads
     environment:
       - APP_NAME=Sozlesme Analizi Sistemi
       - APP_VERSION=0.1.0
@@ -18,11 +16,18 @@ services:
       - CORS_ORIGINS=["http://localhost:5173","http://localhost:3000"]
       - DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/contract_analysis
       - UPLOAD_DIR=uploads
-      - MAX_UPLOAD_SIZE_MB=50
+      - MAX_UPLOAD_SIZE_MB=20
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_BUCKET_NAME=contracts
+      - MINIO_SECURE=false
     networks:
       - legal-network
     depends_on:
       postgres:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     restart: unless-stopped
 
@@ -46,9 +51,31 @@ services:
       retries: 5
     restart: unless-stopped
 
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - legal-network
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
 networks:
   legal-network:
     driver: bridge
 
 volumes:
   postgres_data:
+  minio_data:
