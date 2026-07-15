@@ -1,11 +1,21 @@
+import io
+
 from fastapi import APIRouter, Depends, Query, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.dependencies.auth import get_current_user
 from app.dependencies.database import get_db
+from app.dependencies.storage import get_storage
 from app.models.user import User
 from app.schemas.contract import ContractListResponse, ContractResponse
-from app.services.contract_service import delete_contract, get_contract, list_contracts
+from app.services.contract_service import (
+    delete_contract,
+    download_contract,
+    get_contract,
+    list_contracts,
+)
+from app.storage.storage_service import StorageService
 
 router = APIRouter(prefix="/contracts", tags=["Contracts"])
 
@@ -18,6 +28,23 @@ def get_user_contracts(
     current_user: User = Depends(get_current_user),
 ):
     return list_contracts(db=db, user_id=current_user.id, skip=skip, limit=limit)
+
+
+@router.get("/{contract_id}/download")
+def download_user_contract(
+    contract_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    storage: StorageService = Depends(get_storage),
+):
+    data, mime_type, original_filename = download_contract(
+        db=db, contract_id=contract_id, user_id=current_user.id, storage=storage
+    )
+    return StreamingResponse(
+        content=io.BytesIO(data),
+        media_type=mime_type,
+        headers={"Content-Disposition": f'attachment; filename="{original_filename}"'},
+    )
 
 
 @router.get("/{contract_id}", response_model=ContractResponse)
@@ -34,5 +61,6 @@ def delete_user_contract(
     contract_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    storage: StorageService = Depends(get_storage),
 ):
-    delete_contract(db=db, contract_id=contract_id, user_id=current_user.id)
+    delete_contract(db=db, contract_id=contract_id, user_id=current_user.id, storage=storage)
