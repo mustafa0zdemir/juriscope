@@ -13,7 +13,7 @@ Production-ready sözleşme analizi platformu. Backend FastAPI, frontend React +
 ## Servisleri Başlatma
 
 ```bash
-# Tüm backend servislerini başlat (backend + postgres)
+# Tüm backend servislerini başlat (backend + postgres + minio)
 docker-compose up -d --build
 
 # Servis loglarını izle
@@ -25,7 +25,36 @@ docker-compose down
 
 ---
 
+## MinIO Object Storage
+
+Yüklenen sözleşme dosyaları MinIO üzerinde saklanır.
+
+### MinIO Yönetim Konsolu
+
+URL: `http://localhost:9001` — Kullanıcı: `minioadmin` / Şifre: `minioadmin`
+
+### Bucket Yapısı
+
+Uygulama ilk başladığında `contracts` bucket'ı otomatik oluşturulur.
+
+```
+contracts/
+  └── 2026/
+        └── 07/
+              └── <uuid>.pdf     (storage_key formatı)
+```
+
+### Upload Akışı
+
+```
+İstek → JWT Doğrulama → Dosya Validasyonu (tip + boyut)
+    → UUID oluşturma → MinIO'ya yükleme → DB kaydı → Response
+```
+
+---
+
 ## Database Migration
+
 
 ### Migration Çalıştırma (Tüm migration'ları uygula)
 
@@ -101,10 +130,11 @@ Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
 | GET | `/api/v1/health` | Servis durum kontrolü |
 | POST | `/api/v1/auth/login` | JWT token al |
 | GET | `/api/v1/auth/me` | Giriş yapan kullanıcı bilgisi |
-| POST | `/api/v1/upload` | Dosya yükleme (PDF, DOC, DOCX) ve sözleşme kaydı |
+| POST | `/api/v1/upload` | Dosya yükleme (PDF, DOC, DOCX) → MinIO |
 | GET | `/api/v1/contracts` | Kullanıcının sözleşmelerini listele |
 | GET | `/api/v1/contracts/{id}` | Tek sözleşme detayını getir |
-| DELETE | `/api/v1/contracts/{id}` | Sözleşmeyi ve dosyasını sil |
+| GET | `/api/v1/contracts/{id}/download` | Dosyayı MinIO'dan indir |
+| DELETE | `/api/v1/contracts/{id}` | Sözleşmeyi ve MinIO dosyasını sil |
 
 ---
 
