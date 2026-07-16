@@ -8,6 +8,7 @@ from app.database.base import Base
 
 if TYPE_CHECKING:
     from app.models.contract import Contract
+    from app.models.conversation import Conversation
 
 
 class User(Base):
@@ -27,4 +28,7 @@ class User(Base):
 
     contracts: Mapped[list["Contract"]] = relationship(
         "Contract", back_populates="user", cascade="all, delete-orphan"
+    )
+    conversations: Mapped[list["Conversation"]] = relationship(
+        "Conversation", back_populates="user", cascade="all, delete-orphan", order_by="Conversation.created_at.desc()"
     )
