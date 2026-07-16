@@ -65,6 +65,40 @@ POST /api/v1/search
     → SearchResponse [score, chunk_id, text, metadata, ...]
 ```
 
+### RAG Orchestrator (Sprint 9A)
+
+Sprint 9A, Retrieval katmanını henüz bir LLM çağrısı yapmadan üretime hazır bir
+RAG isteğine dönüştürür. `RAGService` aşağıdaki akışı orkestre eder:
+
+```
+Kullanıcı sorusu
+    → RetrieverService (kullanıcı yetkili sözleşmeleri + top-k)
+    → ContextBuilder (sınırlı ve kaynak etiketli context)
+    → CitationBuilder (contract/chunk/page/score kaynakları)
+    → PromptBuilder (LLM'e gönderilmeye hazır prompt)
+```
+
+`PromptBuilder`, sistem rolü, kullanıcı sorusu, context, cevap kuralları ve
+kaynak gösterme talimatlarını merkezi olarak üretir. Context, güvenilmeyen
+referans metni olarak delimiters içinde tutulur ve `ContextBuilder` tarafından
+karakter limiti ile sınırlandırılır.
+
+`CitationBuilder` her retrieval sonucu için `contract_id`, `chunk_id`,
+`chunk_index`, `page_number` ve `score` alanlarını hazırlar. LLM provider
+abstraction'ı `app/llm/base.py` içindeki `LLMProvider` arayüzüdür; bu sprintte
+herhangi bir provider implementasyonu veya API çağrısı yoktur.
+
+#### RAG API'leri
+
+| Method | Endpoint | Açıklama |
+|--------|----------|----------|
+| POST | `/api/v1/chat/query` | Yetkili chunk'ları getirir, context/prompt/citation üretir |
+| POST | `/api/v1/chat/prompt-preview` | LLM çağrısı olmadan prompt'u önizler |
+
+Her iki endpoint de `question`, opsiyonel `contract_ids` ve `top_k` alır.
+Yanıt `answer` içermez; `retrieved_chunks`, `constructed_context`,
+`constructed_prompt` ve `citations` döner.
+
 ### Document Processing Pipeline
 
 * **Background Tasks**: FastAPI `BackgroundTasks` ile asenkron PDF/DOCX işleme
