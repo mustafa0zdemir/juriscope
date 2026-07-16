@@ -7,6 +7,8 @@ class ChatQueryRequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=4000)
     contract_ids: list[int] | None = Field(default=None, min_length=1)
     top_k: int = Field(default=5, ge=1, le=20)
+    conversation_id: int | None = Field(default=None)
+
 
 
 class CitationResponse(BaseModel):
@@ -26,9 +28,11 @@ class PromptPreviewResponse(BaseModel):
 
 
 class ChatQueryResponse(BaseModel):
+    conversation_id: int | None = None
     question: str
     answer: str
     citations: list[CitationResponse]
     used_chunks: list[SearchResultItem]
     model: str
     latency_ms: int
+
