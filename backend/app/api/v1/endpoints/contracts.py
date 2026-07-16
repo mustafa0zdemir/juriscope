@@ -1,6 +1,6 @@
 import io
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -24,6 +24,7 @@ from app.services.chunking_service import (
     get_contract_chunks,
     get_chunk_detail,
 )
+from app.services.embedding_service import trigger_embedding
 from app.storage.storage_service import StorageService
 
 router = APIRouter(prefix="/contracts", tags=["Contracts"])
@@ -100,6 +101,26 @@ def get_contract_chunk_details(
     current_user: User = Depends(get_current_user),
 ):
     return get_chunk_detail(db=db, contract_id=contract_id, chunk_id=chunk_id, user_id=current_user.id)
+
+
+@router.post("/{contract_id}/embed")
+def start_embedding_process(
+    contract_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return trigger_embedding(db=db, contract_id=contract_id, user_id=current_user.id, background_tasks=background_tasks)
+
+
+@router.get("/{contract_id}/embedding/status", response_model=ContractStatusResponse)
+def get_contract_embedding_status(
+    contract_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # This returns the current status of the contract which includes 'embedding' and 'embedded'
+    return get_contract_status(db=db, contract_id=contract_id, user_id=current_user.id)
 
 
 @router.delete("/{contract_id}", status_code=status.HTTP_204_NO_CONTENT)

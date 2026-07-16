@@ -81,6 +81,10 @@ def process_chunking_task(contract_id: int) -> None:
         repo.update_status(contract, "chunked")
         logger.info(f"Successfully chunked contract {contract_id} into {len(chunks_data)} chunks.")
 
+        # Trigger embedding process
+        from app.services.embedding_service import process_embedding_task
+        process_embedding_task(contract_id)
+
     except Exception as e:
         logger.error(f"Failed to chunk contract {contract_id}: {str(e)}")
         logger.error(traceback.format_exc())

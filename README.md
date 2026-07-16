@@ -133,6 +133,14 @@ anahtarı eksik olduğunda `500` döndürülür. `GET /api/v1/health/llm` Gemini
 yapılandırmasının mevcut olup olmadığını gösterir; gerçek bir model çağrısı
 yapmaz.
 
+### Sohbet ve Mesaj Geçmişi 
+Sisteme kalıcı sohbet (conversation) özelliği eklenmiştir. RAG üzerinden sorulan sorular ve alınan cevaplar veritabanında saklanır.
+- **Conversation**: Bir sohbet oturumunu (başlık ve zaman bilgisi ile) temsil eder. `users` tablosuyla ilişkilidir.
+- **ChatMessage**: Her bir sohbet içindeki mesajları (user/assistant) ve LLM meta verilerini (model, latency vb.) tutar. `conversations` tablosuyla ilişkilidir. 
+- `/api/v1/chat/query` kullanıldığında; eğer istekte `conversation_id` mevcut değilse sistem otomatik olarak kullanıcının sorusuna göre bir başlık belirleyip yeni bir sohbet başlatır.
+
+Bu mimari sayesinde eski konuşmalar listelenebilir, detaylarına bakılabilir ve sistem gelecekte eklenecek "Streaming", "Memory" veya "Chat UI" özellikleri için hazır hale getirilmiştir.
+
 ### Document Processing Pipeline
 
 * **Background Tasks**: FastAPI `BackgroundTasks` ile asenkron PDF/DOCX işleme
@@ -241,8 +249,13 @@ Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
 | GET | `/api/v1/contracts/{id}/download` | Dosyayı MinIO'dan indir |
 | DELETE | `/api/v1/contracts/{id}` | Sözleşmeyi ve MinIO dosyasını sil |
 | POST | `/api/v1/search` | Vektör DB'de anlamsal arama (Semantic Search) yap |
-| POST | `/api/v1/chat/query` | Retrieval context'ini Gemini ile cevaplar |
+| POST | `/api/v1/chat/query` | Retrieval context'ini Gemini ile cevaplar ve mesaja kaydeder |
 | POST | `/api/v1/chat/prompt-preview` | LLM çağrısı olmadan prompt önizlemesi |
+| GET | `/api/v1/conversations` | Kullanıcının tüm sohbetlerini listele |
+| POST | `/api/v1/conversations` | Yeni bir sohbet oluştur |
+| GET | `/api/v1/conversations/{id}` | Belirli bir sohbet detayını getir |
+| GET | `/api/v1/conversations/{id}/messages` | Bir sohbetteki tüm mesajları getir |
+| DELETE | `/api/v1/conversations/{id}` | Bir sohbeti ve mesajlarını sil |
 
 ---
 

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func, JSON
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -22,7 +22,7 @@ class DocumentChunk(Base):
     page_number: Mapped[int] = mapped_column(Integer, nullable=True)  # Might not be available for all formats
     token_count: Mapped[int] = mapped_column(Integer, nullable=False)
     char_count: Mapped[int] = mapped_column(Integer, nullable=False)
-    metadata_: Mapped[dict] = mapped_column("metadata", JSONB, nullable=False, default=dict)
+    metadata_: Mapped[dict] = mapped_column("metadata", JSON().with_variant(JSONB, "postgresql"), nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
     )

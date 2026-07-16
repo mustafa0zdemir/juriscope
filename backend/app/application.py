@@ -6,12 +6,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.router import api_v1_router
 from app.config.settings import settings
 from app.storage.providers.minio_provider import MinioProvider
+from app.embeddings.sentence_transformer_provider import SentenceTransformerProvider
+from app.storage.qdrant_service import QdrantService
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Init MinIO
     provider = MinioProvider()
     provider.ensure_bucket()
+
+    # Init Embedding Model (Singleton)
+    embed_provider = SentenceTransformerProvider(settings.embedding_model)
+    
+    # Init Qdrant Collection
+    qdrant = QdrantService()
+    qdrant.ensure_collection_exists(embed_provider.get_dimension())
+
     yield
 
 

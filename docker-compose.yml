@@ -8,6 +8,7 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
+      - hf_cache:/root/.cache/huggingface
     environment:
       - APP_NAME=Sozlesme Analizi Sistemi
       - APP_VERSION=0.1.0
@@ -31,6 +32,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      qdrant:
+        condition: service_started
     restart: unless-stopped
 
   postgres:
@@ -74,6 +77,17 @@ services:
       retries: 5
     restart: unless-stopped
 
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - legal-network
+
 networks:
   legal-network:
     driver: bridge
@@ -81,3 +95,5 @@ networks:
 volumes:
   postgres_data:
   minio_data:
+  qdrant_data:
+  hf_cache:
