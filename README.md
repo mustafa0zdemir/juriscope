@@ -85,8 +85,7 @@ karakter limiti ile sınırlandırılır.
 
 `CitationBuilder` her retrieval sonucu için `contract_id`, `chunk_id`,
 `chunk_index`, `page_number` ve `score` alanlarını hazırlar. LLM provider
-abstraction'ı `app/llm/base.py` içindeki `LLMProvider` arayüzüdür; bu sprintte
-herhangi bir provider implementasyonu veya API çağrısı yoktur.
+abstraction'ı `app/llm/base.py` içindeki `LLMProvider` arayüzüdür.
 
 #### RAG API'leri
 
@@ -96,8 +95,43 @@ herhangi bir provider implementasyonu veya API çağrısı yoktur.
 | POST | `/api/v1/chat/prompt-preview` | LLM çağrısı olmadan prompt'u önizler |
 
 Her iki endpoint de `question`, opsiyonel `contract_ids` ve `top_k` alır.
-Yanıt `answer` içermez; `retrieved_chunks`, `constructed_context`,
+Prompt Preview yanıtı `retrieved_chunks`, `constructed_context`,
 `constructed_prompt` ve `citations` döner.
+
+### Gemini LLM Integration (Sprint 9B)
+
+Sprint 9B ile `GeminiProvider` ve `LLMService` eklenmiştir. RAG query akışı
+şu şekildedir:
+
+```
+Semantic Retrieval
+    → ContextBuilder
+    → PromptBuilder
+    → LLMService
+    → GeminiProvider
+    → CitationBuilder
+    → Final Response
+```
+
+Google'ın resmi `google-genai` Python SDK'sı kullanılır. API anahtarı ve model
+ayarları `backend/.env` içinde tutulmalı, örnek değerler `backend/.env.example`
+dosyasındadır:
+
+```env
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-2.5-flash
+MAX_OUTPUT_TOKENS=1024
+TEMPERATURE=0.2
+TOP_P=0.95
+GEMINI_TIMEOUT_SECONDS=30
+```
+
+`POST /api/v1/chat/query` artık `answer`, `citations`, `used_chunks`, `model`
+ve `latency_ms` döndürür. `POST /api/v1/chat/prompt-preview` ise LLM çağrısı
+yapmadan prompt önizlemesini korur. Gemini API erişilemediğinde `503`, API
+anahtarı eksik olduğunda `500` döndürülür. `GET /api/v1/health/llm` Gemini
+yapılandırmasının mevcut olup olmadığını gösterir; gerçek bir model çağrısı
+yapmaz.
 
 ### Document Processing Pipeline
 
@@ -191,6 +225,7 @@ Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
 | Method | Endpoint | Açıklama |
 |--------|----------|----------|
 | GET | `/api/v1/health` | Servis durum kontrolü |
+| GET | `/api/v1/health/llm` | Gemini yapılandırma ve model durumu |
 | POST | `/api/v1/auth/login` | JWT token al |
 | GET | `/api/v1/auth/me` | Giriş yapan kullanıcı bilgisi |
 | POST | `/api/v1/upload` | Dosya yükleme (PDF, DOC, DOCX) → MinIO |
@@ -206,6 +241,8 @@ Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
 | GET | `/api/v1/contracts/{id}/download` | Dosyayı MinIO'dan indir |
 | DELETE | `/api/v1/contracts/{id}` | Sözleşmeyi ve MinIO dosyasını sil |
 | POST | `/api/v1/search` | Vektör DB'de anlamsal arama (Semantic Search) yap |
+| POST | `/api/v1/chat/query` | Retrieval context'ini Gemini ile cevaplar |
+| POST | `/api/v1/chat/prompt-preview` | LLM çağrısı olmadan prompt önizlemesi |
 
 ---
 

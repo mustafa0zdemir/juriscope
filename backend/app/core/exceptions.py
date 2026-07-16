@@ -36,3 +36,19 @@ class BadRequestException(AppException):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=detail,
         )
+
+
+class LLMConfigurationException(AppException):
+    def __init__(self, detail: str = "LLM yapılandırması eksik"):
+        super().__init__(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=detail,
+        )
+
+
+class LLMUnavailableException(AppException):
+    def __init__(self, detail: str = "LLM servisine şu anda erişilemiyor"):
+        super().__init__(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=detail,
+        )

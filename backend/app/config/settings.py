@@ -32,6 +32,17 @@ class Settings(BaseSettings):
     minio_bucket_name: str = "contracts"
     minio_secure: bool = False
 
+    qdrant_url: str = "http://qdrant:6333"
+    qdrant_collection: str = "contracts"
+    embedding_model: str = "BAAI/bge-m3"
+
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.5-flash"
+    max_output_tokens: int = 1024
+    temperature: float = 0.2
+    top_p: float = 0.95
+    gemini_timeout_seconds: float = 30.0
+
     upload_dir: str = "uploads"
     max_upload_size_mb: int = 20
     allowed_extensions: list[str] = [".pdf", ".doc", ".docx"]

@@ -17,9 +17,18 @@ class CitationResponse(BaseModel):
     score: float
 
 
-class ChatQueryResponse(BaseModel):
+class PromptPreviewResponse(BaseModel):
     question: str
     retrieved_chunks: list[SearchResultItem]
     constructed_context: str
     constructed_prompt: str
     citations: list[CitationResponse]
+
+
+class ChatQueryResponse(BaseModel):
+    question: str
+    answer: str
+    citations: list[CitationResponse]
+    used_chunks: list[SearchResultItem]
+    model: str
+    latency_ms: int
