@@ -11,6 +11,7 @@ from app.schemas.chat import (
     PromptPreviewResponse,
 )
 from app.schemas.search import SearchResultItem
+from app.services.conversation_service import ConversationService
 from app.services.rag_service import RAGService
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
@@ -35,8 +36,9 @@ def _citations_to_response(citations) -> list[CitationResponse]:
     return [CitationResponse.model_validate(citation.to_dict()) for citation in citations]
 
 
-def _to_query_response(result) -> ChatQueryResponse:
+def _to_query_response(result, conversation_id: int | None = None) -> ChatQueryResponse:
     return ChatQueryResponse(
+        conversation_id=conversation_id,
         question=result.question,
         answer=result.answer,
         citations=_citations_to_response(result.citations),
@@ -62,8 +64,39 @@ def chat_query(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    conversation_service = ConversationService()
+    
+    if request.conversation_id:
+        conversation = conversation_service.get_conversation(
+            db=db, user_id=current_user.id, conversation_id=request.conversation_id
+        )
+    else:
+        title = request.question[:250] + ("..." if len(request.question) > 250 else "")
+        conversation = conversation_service.create_conversation(
+            db=db, user_id=current_user.id, title=title
+        )
+        
+    conversation_service.add_message(
+        db=db,
+        user_id=current_user.id,
+        conversation_id=conversation.id,
+        role="user",
+        content=request.question
+    )
+
     result = RAGService().query(db=db, user_id=current_user.id, request=request)
-    return _to_query_response(result)
+    
+    conversation_service.add_message(
+        db=db,
+        user_id=current_user.id,
+        conversation_id=conversation.id,
+        role="assistant",
+        content=result.answer,
+        model=result.model,
+        latency_ms=result.latency_ms
+    )
+    
+    return _to_query_response(result, conversation_id=conversation.id)
 
 
 @router.post("/prompt-preview", response_model=PromptPreviewResponse)
