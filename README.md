@@ -211,6 +211,109 @@ Riskler, Eksik Maddeler, Belirsiz Maddeler, Tek Taraflı Maddeler, Öneriler ve
 Kaynaklar sekmelerinde gösterilir. Bu endpoint streaming kullanmaz; mevcut chat
 streaming akışı değişmeden korunur.
 
+### Explainable AI Katmanı
+
+Explainable AI katmanı, Legal Analysis Engine tarafından üretilen sonucun hangi
+sözleşme maddesi, kanun ve emsal karara dayandığını şeffaf biçimde gösterir.
+`ExplainableAnalysisService`, mevcut analiz çalıştırmasını ve yetkilendirilmiş
+retrieval sonuçlarını yeniden kullanır; ikinci ve farklı bir retrieval zinciri
+oluşturmaz.
+
+```text
+Legal Analysis + doğrulanmış retrieval sonuçları
+    → ConfidenceBuilder
+    → EvidenceBuilder
+    → Legal Reasoning
+    → RetrievalPathBuilder
+    → Source Attribution
+    → ExplainableAnalysisResponse
+```
+
+#### Confidence Score
+
+Güven puanı `0-100` aralığındadır. Model güveni, retrieval skorları, Cross
+Encoder rerank skorları ve sözleşme/kanun/emsal karar kaynak çeşitliliği birlikte
+hesaplanır. Seviyeler `VERY_LOW`, `LOW`, `MEDIUM`, `HIGH` ve `VERY_HIGH` olarak
+döndürülür. Bu puan hukuki doğruluk garantisi değil, kullanılan kanıt setinin
+teknik yeterlilik göstergesidir.
+
+#### Evidence ve Reasoning
+
+Her risk için mümkün olduğunda sözleşme chunk'ı, kanun chunk'ı ve emsal karar
+chunk'ı eşleştirilir. Evidence kaydı; sayfa, chunk, similarity, rerank skoru ve
+metin özetini taşır. Reasoning alanı riskin neden önemli olduğunu, hukuki
+dayanağı, emsal karar desteğini ve etkilenen sözleşme maddesini ayrı alanlarda
+açıklar. Citation verileri yalnızca retrieval metadata'sından oluşturulur.
+
+#### Retrieval Path
+
+Her explain yanıtı aşağıdaki işlem zincirini durum ve hit sayılarıyla döndürür:
+
+```text
+Question → Contract Retrieval → Law Retrieval → Case Retrieval
+         → Hybrid Merge → Re-ranking → Gemini → Answer
+```
+
+```http
+POST /api/v1/contracts/{contract_id}/analysis/explain
+Authorization: Bearer <token>
+```
+
+Yanıt; `analysis`, `confidence_score`, `confidence_level`, `reasoning`,
+`evidence`, `retrieval_path`, `matched_articles`, `matched_cases`,
+`used_contract_chunks` ve `citations` alanlarını içerir. Frontend analiz
+ekranındaki Explain, Evidence, Confidence ve Retrieval Path sekmeleri bu alanları
+kart, progress bar ve timeline olarak gösterir.
+
+### Gelişmiş Sözleşme Analizi
+
+Gelişmiş analiz katmanı, repository üzerinden okunan yetkili `DocumentChunk`
+kayıtlarını servis katmanında işler. Repository yalnızca veri erişimi yapar;
+madde sınıflandırma, risk etiketleme, karşılaştırma ve compliance kuralları
+servislerde bulunur.
+
+#### Clause Detection ve Risk Tagging
+
+`ClauseDetectionService`; Gizlilik, Fesih, Cezai Şart, Mücbir Sebep, Tahkim,
+Yetkili Mahkeme, Ödeme, Süre, Teslim, KVKK, Rekabet Yasağı ve Fikri Mülkiyet
+maddelerini tespit eder. Her sonuç kategori, güven, eşleşen anahtar kelimeler,
+sayfa/chunk bilgisi ve `Financial`, `Legal`, `Privacy`, `Commercial` veya
+`Employment` risk etiketlerini içerir.
+
+#### Compliance Checker
+
+`ComplianceService`, tespit edilen madde kategorilerini Türk Borçlar Kanunu,
+Türk Ticaret Kanunu, KVKK ve İş Kanunu kontrol setleriyle karşılaştırır. Rapor;
+uyumluluk puanı, `COMPLIANT/PARTIAL/NON_COMPLIANT` durumu, eksik maddeler,
+sorunlar ve iyileştirme önerileri döndürür. Otomatik rapor hukuki görüş yerine
+geçmez ve uzman doğrulaması gerektirir.
+
+#### Contract Comparison ve Version Diff
+
+İki analize hazır sözleşme aynı kullanıcıya ait olmak şartıyla karşılaştırılır.
+`ContractComparisonService`, kategori bazında eklenen, silinen, değiştirilen ve
+değişmeyen maddeleri belirler; metin benzerliğini ölçer, risk değişimlerini ve
+yeni hak/yükümlülük ifadelerini raporlar. Frontend'deki `/compare` ekranı iki
+sözleşme seçimi ve yan yana fark kartları sunar.
+
+| Method | Endpoint | Açıklama |
+|--------|----------|----------|
+| POST | `/api/v1/contracts/compare` | İki sözleşmenin version diff ve risk değişimini üretir |
+| POST | `/api/v1/contracts/{id}/compliance` | Dört temel mevzuat için compliance raporu üretir |
+| GET | `/api/v1/contracts/{id}/clauses` | Sınıflandırılmış maddeleri ve risk etiketlerini döndürür |
+
+Karşılaştırma isteği:
+
+```json
+{
+  "base_contract_id": 12,
+  "comparison_contract_id": 18
+}
+```
+
+Tüm endpoint'ler JWT korumalıdır. Her sözleşmenin giriş yapan kullanıcıya ait ve
+`embedded` durumda olduğu servis katmanında doğrulanır.
+
 ### Legal Knowledge Base
 
 Legal Knowledge Base; kanun, yönetmelik, tebliğ ve yüksek mahkeme kararlarını

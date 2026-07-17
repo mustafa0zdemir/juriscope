@@ -127,6 +127,139 @@ export interface LegalAnalysis {
   citations: Citation[];
 }
 
+export type ConfidenceLevel = "VERY_LOW" | "LOW" | "MEDIUM" | "HIGH" | "VERY_HIGH";
+export type ClauseType =
+  | "CONFIDENTIALITY"
+  | "TERMINATION"
+  | "PENALTY"
+  | "FORCE_MAJEURE"
+  | "ARBITRATION"
+  | "JURISDICTION"
+  | "PAYMENT"
+  | "DURATION"
+  | "DELIVERY"
+  | "KVKK"
+  | "NON_COMPETE"
+  | "INTELLECTUAL_PROPERTY";
+export type RiskTag = "Financial" | "Legal" | "Privacy" | "Commercial" | "Employment";
+
+export interface AttributedSource {
+  source_type: "contract" | "law" | "case_law";
+  title: string;
+  article: string | null;
+  page: number | null;
+  chunk: number;
+  similarity: number;
+  rerank_score: number | null;
+  text_excerpt: string;
+}
+
+export interface ExplainEvidence {
+  risk_title: string;
+  contract_chunk: AttributedSource | null;
+  law_chunk: AttributedSource | null;
+  case_law_chunk: AttributedSource | null;
+  similarity_score: number;
+  rerank_score: number | null;
+}
+
+export interface LegalReasoning {
+  risk_title: string;
+  why_risky: string;
+  law_basis: string;
+  case_support: string;
+  affected_clause: string;
+}
+
+export interface RetrievalPathStep {
+  stage: string;
+  status: string;
+  detail: string;
+  hit_count: number | null;
+}
+
+export interface ExplainableAnalysis {
+  analysis: LegalAnalysis;
+  confidence_score: number;
+  confidence_level: ConfidenceLevel;
+  reasoning: LegalReasoning[];
+  evidence: ExplainEvidence[];
+  retrieval_path: RetrievalPathStep[];
+  matched_articles: AttributedSource[];
+  matched_cases: AttributedSource[];
+  used_contract_chunks: AttributedSource[];
+  citations: Citation[];
+}
+
+export interface DetectedClause {
+  clause_type: ClauseType;
+  title: string;
+  contract_id: number;
+  chunk_id: number;
+  chunk_index: number;
+  page_number: number | null;
+  text: string;
+  confidence: number;
+  matched_keywords: string[];
+  risk_tags: RiskTag[];
+}
+
+export interface ClauseListResponse {
+  contract_id: number;
+  clauses: DetectedClause[];
+  detected_types: ClauseType[];
+  missing_types: ClauseType[];
+}
+
+export type ComplianceStatus = "COMPLIANT" | "PARTIAL" | "NON_COMPLIANT";
+
+export interface ComplianceFinding {
+  law: string;
+  status: ComplianceStatus;
+  required_clauses: ClauseType[];
+  detected_clauses: ClauseType[];
+  missing_clauses: ClauseType[];
+  issues: string[];
+  recommendation: string;
+}
+
+export interface ComplianceReport {
+  contract_id: number;
+  compliance_score: number;
+  status: ComplianceStatus;
+  findings: ComplianceFinding[];
+  risk_tags: RiskTag[];
+  disclaimer: string;
+}
+
+export interface ClauseChange {
+  clause_type: ClauseType;
+  before: DetectedClause | null;
+  after: DetectedClause | null;
+  similarity: number;
+  summary: string;
+}
+
+export interface RiskChange {
+  clause_type: ClauseType;
+  before_tags: RiskTag[];
+  after_tags: RiskTag[];
+  direction: string;
+}
+
+export interface ContractComparison {
+  base_contract_id: number;
+  comparison_contract_id: number;
+  added_clauses: DetectedClause[];
+  removed_clauses: DetectedClause[];
+  modified_clauses: ClauseChange[];
+  unchanged_clauses: ClauseType[];
+  risk_changes: RiskChange[];
+  new_obligations: string[];
+  new_rights: string[];
+  summary: string;
+}
+
 export type LegalDocumentType =
   | "LAW"
   | "REGULATION"

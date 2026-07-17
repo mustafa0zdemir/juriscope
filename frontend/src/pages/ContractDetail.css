@@ -94,6 +94,29 @@
   opacity: 0.55;
 }
 
+.analysis-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  justify-content: flex-end;
+}
+
+.analysis-actions button:not(.analyze-button) {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.7rem 0.85rem;
+}
+
+.analysis-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .analysis-placeholder,
 .analysis-results,
 .analysis-notice,
@@ -268,6 +291,99 @@
   text-align: center;
 }
 
+.confidence-panel,
+.reasoning-card,
+.evidence-card,
+.clause-card,
+.compliance-card,
+.compliance-overview {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+}
+
+.confidence-heading,
+.compliance-overview {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+}
+
+.confidence-heading strong,
+.compliance-overview > strong {
+  color: var(--accent);
+  font-size: 1.7rem;
+}
+
+.confidence-heading span,
+.compliance-overview span {
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.confidence-track {
+  background: var(--bg-input);
+  border-radius: 999px;
+  height: 12px;
+  margin: 1rem 0;
+  overflow: hidden;
+}
+
+.confidence-fill {
+  background: linear-gradient(90deg, var(--warning), var(--success));
+  border-radius: inherit;
+  height: 100%;
+}
+
+.confidence-panel p,
+.reasoning-card p,
+.evidence-source p,
+.clause-card p,
+.compliance-card p,
+.compliance-card li,
+.compliance-overview p {
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  line-height: 1.55;
+  margin: 0.35rem 0;
+}
+
+.reasoning-card strong,
+.compliance-card strong {
+  display: block;
+  font-size: 0.78rem;
+  margin-top: 0.75rem;
+}
+
+.reasoning-card h3,
+.evidence-card h3,
+.clause-card h3,
+.compliance-card h3 {
+  font-size: 1rem;
+  margin: 0 0 0.75rem;
+}
+
+.evidence-list { display: grid; gap: 1rem; }
+.evidence-grid { display: grid; gap: 0.75rem; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.evidence-source { background: var(--bg-input); border-radius: var(--radius-sm); display: flex; flex-direction: column; padding: 0.8rem; }
+.evidence-source span { color: var(--text-muted); font-size: 0.72rem; }
+.retrieval-timeline { list-style: none; margin-left: 0.45rem; }
+.retrieval-timeline li { border-left: 2px solid var(--border-light); display: flex; gap: 1rem; padding: 0 0 1.25rem 1.25rem; position: relative; }
+.timeline-dot { background: var(--accent); border: 3px solid var(--bg-card); border-radius: 50%; height: 14px; left: -8px; position: absolute; top: 2px; width: 14px; }
+.retrieval-timeline p { color: var(--text-secondary); font-size: 0.82rem; margin: 0.2rem 0; }
+.retrieval-timeline small { color: var(--text-muted); }
+.analysis-metrics { display: flex; gap: 0.75rem; margin-bottom: 1rem; }
+.analysis-metrics span { background: var(--bg-input); border-radius: var(--radius-sm); color: var(--text-secondary); padding: 0.6rem 0.8rem; }
+.clause-confidence { color: var(--success); font-weight: 700; }
+.tag-row { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.65rem 0; }
+.tag-row span { background: var(--accent-glow); border-radius: 999px; color: var(--accent-hover); font-size: 0.7rem; padding: 0.2rem 0.55rem; }
+.clause-card small { color: var(--text-muted); }
+.compliance-overview { margin-bottom: 1rem; }
+.compliance-card ul { padding-left: 1.25rem; }
+.risk-category-grid { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.risk-category-grid article { align-items: center; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-md); display: flex; gap: 0.7rem; padding: 1rem; }
+.risk-category-grid article span { align-items: center; background: var(--accent-glow); border-radius: 50%; color: var(--accent-hover); display: flex; height: 34px; justify-content: center; width: 34px; }
+
 @media (max-width: 640px) {
   .contract-detail-header {
     align-items: flex-start;
@@ -277,4 +393,8 @@
   .analyze-button {
     width: 100%;
   }
+
+  .analysis-actions { width: 100%; }
+  .analysis-actions button { flex: 1 1 100%; }
+  .evidence-grid { grid-template-columns: 1fr; }
 }

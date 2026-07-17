@@ -97,7 +97,8 @@
   margin-top: 1rem;
 }
 
-.legal-kb-banner {
+.legal-kb-banner,
+.analysis-platform-banner {
   align-items: center;
   background: linear-gradient(135deg, var(--bg-card), rgba(99, 102, 241, 0.16));
   border: 1px solid var(--accent);
@@ -109,14 +110,22 @@
   padding: 1.2rem 1.4rem;
 }
 
-.legal-kb-banner strong {
+.analysis-platform-banner {
+  background: linear-gradient(135deg, var(--bg-card), rgba(34, 197, 94, 0.12));
+  border-color: var(--success);
+}
+
+.legal-kb-banner strong,
+.analysis-platform-banner strong {
   display: block;
   font-size: 1.05rem;
   margin: 0.15rem 0;
 }
 
 .legal-kb-banner p,
-.legal-kb-banner > span {
+.legal-kb-banner > span,
+.analysis-platform-banner p,
+.analysis-platform-banner > span {
   color: var(--text-secondary);
   font-size: 0.82rem;
 }

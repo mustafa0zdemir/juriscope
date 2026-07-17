@@ -31,6 +31,9 @@ export default function Navbar() {
         <NavLink to="/chat" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
           Sohbet
         </NavLink>
+        <NavLink to="/compare" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
+          Karşılaştır
+        </NavLink>
         {user?.is_admin && (
           <NavLink to="/legal-kb" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
             Hukuk KB

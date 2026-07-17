@@ -7,6 +7,7 @@ import NotFound from "../pages/NotFound";
 import Chat from "../pages/Chat";
 import ContractDetail from "../pages/ContractDetail";
 import LegalKnowledgeBase from "../pages/LegalKnowledgeBase";
+import ContractComparison from "../pages/ContractComparison";
 import AuthGuard from "../components/AuthGuard";
 
 export const router = createBrowserRouter([
@@ -44,6 +45,10 @@ export const router = createBrowserRouter([
           {
             path: "legal-kb",
             element: <LegalKnowledgeBase />,
+          },
+          {
+            path: "compare",
+            element: <ContractComparison />,
           },
         ],
       },

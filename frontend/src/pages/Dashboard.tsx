@@ -99,6 +99,15 @@ export default function Dashboard() {
         </Link>
       )}
 
+      <Link className="analysis-platform-banner" to="/compare">
+        <div>
+          <span className="eyebrow">GELİŞMİŞ ANALİZ</span>
+          <strong>Sözleşme Karşılaştırma</strong>
+          <p>Madde, risk, hak ve yükümlülük değişimlerini iki sürüm arasında karşılaştırın.</p>
+        </div>
+        <span>Karşılaştırmayı aç →</span>
+      </Link>
+
       <div className="dashboard-section">
         <h2>Sözleşmeler</h2>
         {!isLoading && contracts.length > 0 ? (
