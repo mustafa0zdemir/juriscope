@@ -34,7 +34,23 @@ class ContractComparisonService:
         removed = [before_map[key] for key in before_map.keys() - after_map.keys()]
         modified: list[ClauseChange] = []
         unchanged: list[ClauseType] = []
-        risk_changes: list[RiskChange] = []
+        risk_changes: list[RiskChange] = [
+            RiskChange(
+                clause_type=clause.clause_type,
+                before_tags=[],
+                after_tags=clause.risk_tags,
+                direction="ADDED",
+            )
+            for clause in added
+        ] + [
+            RiskChange(
+                clause_type=clause.clause_type,
+                before_tags=clause.risk_tags,
+                after_tags=[],
+                direction="REMOVED",
+            )
+            for clause in removed
+        ]
 
         for clause_type in before_map.keys() & after_map.keys():
             before = before_map[clause_type]
@@ -52,7 +68,7 @@ class ContractComparisonService:
                 )
             else:
                 unchanged.append(clause_type)
-            if set(before.risk_tags) != set(after.risk_tags) or similarity < 0.75:
+            if set(before.risk_tags) != set(after.risk_tags) or similarity < 0.92:
                 risk_changes.append(
                     RiskChange(
                         clause_type=clause_type,

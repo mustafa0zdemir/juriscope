@@ -101,6 +101,7 @@ def test_contract_comparison_finds_added_removed_and_modified_clauses(db, curren
     assert any(clause.clause_type is ClauseType.TERMINATION for clause in result.added_clauses)
     assert any(clause.clause_type is ClauseType.CONFIDENTIALITY for clause in result.removed_clauses)
     assert any(change.clause_type is ClauseType.PAYMENT for change in result.modified_clauses)
+    assert {change.direction for change in result.risk_changes} >= {"ADDED", "REMOVED", "CHANGED"}
 
 
 def test_advanced_analysis_rejects_another_users_contract(client, db, current_user) -> None:
