@@ -13,39 +13,30 @@ import {
   CompliancePanel,
   RiskCategories,
 } from "../components/analysis/AdvancedPanels";
+import { Badge, Button, Icon, SectionHeader } from "../components/ui";
 import "./ContractDetail.css";
 
 type AnalysisTab =
   | "summary"
   | "risks"
-  | "missing"
-  | "ambiguous"
-  | "one-sided"
-  | "recommendations"
   | "citations"
   | "explain"
   | "evidence"
   | "confidence"
   | "retrieval-path"
   | "clauses"
-  | "compliance"
-  | "risk-categories";
+  | "compliance";
 
 const tabs: Array<{ id: AnalysisTab; label: string }> = [
   { id: "summary", label: "Genel Özet" },
   { id: "risks", label: "Riskler" },
-  { id: "missing", label: "Eksik Maddeler" },
-  { id: "ambiguous", label: "Belirsiz Maddeler" },
-  { id: "one-sided", label: "Tek Taraflı Maddeler" },
-  { id: "recommendations", label: "Öneriler" },
-  { id: "citations", label: "Kaynaklar" },
   { id: "explain", label: "Explain" },
   { id: "evidence", label: "Evidence" },
+  { id: "compliance", label: "Compliance" },
+  { id: "clauses", label: "Clause Explorer" },
+  { id: "citations", label: "Sources" },
   { id: "confidence", label: "Confidence" },
   { id: "retrieval-path", label: "Retrieval Path" },
-  { id: "clauses", label: "Clause Explorer" },
-  { id: "compliance", label: "Compliance" },
-  { id: "risk-categories", label: "Risk Categories" },
 ];
 
 function riskLabel(category: RiskCategory): string {
@@ -56,6 +47,12 @@ function riskLabel(category: RiskCategory): string {
     CRITICAL: "Kritik",
   };
   return labels[category];
+}
+
+function RiskRing({ score, category }: { score: number; category: RiskCategory }) {
+  const radius = 42;
+  const circumference = 2 * Math.PI * radius;
+  return <div className={`risk-ring ring-${category.toLowerCase()}`}><svg viewBox="0 0 100 100" aria-label={`Risk puanı ${score}`}><circle className="risk-ring-track" cx="50" cy="50" r={radius} /><circle className="risk-ring-value" cx="50" cy="50" r={radius} strokeDasharray={circumference} strokeDashoffset={circumference * (1 - score / 100)} /></svg><div><strong>{score}</strong><span>/100</span></div></div>;
 }
 
 function FindingList({ findings }: { findings: AnalysisFinding[] }) {
@@ -137,21 +134,18 @@ export default function ContractDetail() {
   return (
     <div className="contract-detail-page">
       <Link className="back-link" to="/dashboard">← Dashboard'a dön</Link>
-      <header className="contract-detail-header">
-        <div>
-          <p className="eyebrow">Sözleşme Detayı</p>
-          <h1>{contract.original_filename}</h1>
-          <span className={`contract-status status-${contract.status}`}>{contract.status}</span>
-        </div>
-        <div className="analysis-actions">
-          <button className="analyze-button" disabled={!isReady || isAnalyzing} onClick={() => void analyze()}>
-            {isAnalyzing ? "İşleniyor..." : "Analiz Et"}
-          </button>
-          <button disabled={!isReady || isAnalyzing} onClick={() => void explain().then(() => setActiveTab("explain"))}>Açıklanabilir Analiz</button>
-          <button disabled={!isReady || isAnalyzing} onClick={() => void detectClauses().then(() => setActiveTab("clauses"))}>Maddeleri Tara</button>
-          <button disabled={!isReady || isAnalyzing} onClick={() => void checkCompliance().then(() => setActiveTab("compliance"))}>Uyumluluğu Denetle</button>
-        </div>
-      </header>
+      <SectionHeader eyebrow="Sözleşme Detayı" title={contract.original_filename} description="Belge bilgileri, AI analizi, hukuki kanıtlar ve compliance sonuçları." action={<div className="analysis-actions"><Button disabled={!isReady || isAnalyzing} icon="sparkle" onClick={() => void analyze()}>{isAnalyzing ? "İşleniyor..." : "Analiz Et"}</Button><Button variant="secondary" disabled={!isReady || isAnalyzing} icon="shield" onClick={() => void explain().then(() => setActiveTab("explain"))}>Explain</Button><Button variant="secondary" disabled={!isReady || isAnalyzing} icon="search" onClick={() => void detectClauses().then(() => setActiveTab("clauses"))}>Maddeleri Tara</Button><Button variant="secondary" disabled={!isReady || isAnalyzing} icon="check" onClick={() => void checkCompliance().then(() => setActiveTab("compliance"))}>Compliance</Button></div>} />
+
+      <section className="contract-meta-grid" aria-label="Sözleşme bilgileri">
+        <div><Icon name="document" /><span>Dosya Bilgisi</span><strong>{contract.mime_type.split("/").at(-1)?.toUpperCase()}</strong></div>
+        <div><Icon name="clock" /><span>Upload Tarihi</span><strong>{new Date(contract.uploaded_at).toLocaleDateString("tr-TR")}</strong></div>
+        <div><Icon name="activity" /><span>Status</span><Badge tone={isReady ? "success" : "warning"}>{contract.status}</Badge></div>
+        <div><Icon name="check" /><span>Embedding</span><strong>{isReady ? "Tamamlandı" : "Bekliyor"}</strong></div>
+        <div><Icon name="shield" /><span>Compliance</span><strong>{compliance ? `${compliance.compliance_score}/100` : "—"}</strong></div>
+        <div><Icon name="alert" /><span>Risk</span><strong>{analysis ? `${analysis.risk_score}/100` : "—"}</strong></div>
+        <div><Icon name="sparkle" /><span>Analiz Durumu</span><strong>{analysis ? "Tamamlandı" : "Bekliyor"}</strong></div>
+        <div><Icon name="download" /><span>Dosya Boyutu</span><strong>{(contract.file_size / 1024).toFixed(1)} KB</strong></div>
+      </section>
 
       {!isReady && <p className="analysis-notice">Sözleşme embedding işlemi tamamlandığında analiz başlatılabilir.</p>}
       {error && <p className="analysis-error">{error}</p>}
@@ -166,10 +160,7 @@ export default function ContractDetail() {
       {(analysis || explanation || clauses || compliance) && (
         <section className="analysis-results">
           {analysis && <div className="risk-overview">
-            <div className={`risk-score risk-${analysis.risk_category.toLowerCase()}`}>
-              <span>{analysis.risk_score}</span>
-              <small>/ 100</small>
-            </div>
+            <RiskRing score={analysis.risk_score} category={analysis.risk_category} />
             <div>
               <p className="eyebrow">Risk Puanı</p>
               <h2>{riskLabel(analysis.risk_category)} Risk</h2>
@@ -192,17 +183,13 @@ export default function ContractDetail() {
           </div>
 
           <div className="analysis-tab-content">
-            {activeTab === "summary" && (analysis ? <p className="summary-text">{analysis.summary}</p> : <p className="analysis-empty">Temel analiz henüz oluşturulmadı.</p>)}
-            {activeTab === "risks" && (analysis ? <RiskList risks={analysis.risks} /> : <p className="analysis-empty">Risk analizi henüz oluşturulmadı.</p>)}
-            {activeTab === "missing" && (analysis ? <FindingList findings={analysis.missing_clauses} /> : <p className="analysis-empty">Temel analiz henüz oluşturulmadı.</p>)}
-            {activeTab === "ambiguous" && (analysis ? <FindingList findings={analysis.ambiguous_clauses} /> : <p className="analysis-empty">Temel analiz henüz oluşturulmadı.</p>)}
-            {activeTab === "one-sided" && (analysis ? <FindingList findings={analysis.one_sided_clauses} /> : <p className="analysis-empty">Temel analiz henüz oluşturulmadı.</p>)}
-            {activeTab === "recommendations" && (analysis ? <RecommendationList recommendations={analysis.recommendations} /> : <p className="analysis-empty">Temel analiz henüz oluşturulmadı.</p>)}
+            {activeTab === "summary" && (analysis ? <div className="analysis-summary-layout"><div className="summary-copy"><h3>Yönetici Özeti</h3><p className="summary-text">{analysis.summary}</p></div><div className="summary-findings"><section><h3>Eksik Maddeler</h3><FindingList findings={analysis.missing_clauses} /></section><section><h3>Belirsiz Maddeler</h3><FindingList findings={analysis.ambiguous_clauses} /></section><section><h3>Tek Taraflı Hükümler</h3><FindingList findings={analysis.one_sided_clauses} /></section></div></div> : <p className="analysis-empty">Temel analiz henüz oluşturulmadı.</p>)}
+            {activeTab === "risks" && (analysis ? <div className="risk-tab-layout"><section><h3>Tespit Edilen Riskler</h3><RiskList risks={analysis.risks} /></section><section><h3>Önerilen Aksiyonlar</h3><RecommendationList recommendations={analysis.recommendations} /></section></div> : <p className="analysis-empty">Risk analizi henüz oluşturulmadı.</p>)}
             {activeTab === "citations" && (
               <div className="citation-list">
                 {(analysis?.citations ?? []).map((citation, index) => (
                   <article className="citation-card" key={citation.chunk_id}>
-                    <strong>Kaynak {index + 1}</strong>
+                    <div className="source-card-heading"><i><Icon name={citation.source_type === "legal" ? "book" : "document"} size={16} /></i><strong>Kaynak {index + 1}</strong></div>
                     {citation.source_type === "legal" ? (
                       <>
                         <span>{citation.title ?? "Hukuki kaynak"}</span>
@@ -214,6 +201,7 @@ export default function ContractDetail() {
                     )}
                     <span>Sayfa {citation.page ?? citation.page_number ?? "belirtilmemiş"}</span>
                     <span>Skor {citation.score.toFixed(2)}</span>
+                    <span>Rerank {citation.rerank_score?.toFixed(2) ?? "—"}</span>
                   </article>
                 ))}
               </div>
@@ -234,11 +222,8 @@ export default function ContractDetail() {
               ? <ClauseExplorer result={clauses} />
               : <p className="analysis-empty">Clause Explorer için “Maddeleri Tara” işlemini başlatın.</p>)}
             {activeTab === "compliance" && (compliance
-              ? <CompliancePanel report={compliance} />
+              ? <><CompliancePanel report={compliance} /><div className="risk-category-section"><h3>Risk Kategorileri</h3><RiskCategories tags={compliance.risk_tags} /></div></>
               : <p className="analysis-empty">Compliance raporu için uyumluluk denetimini başlatın.</p>)}
-            {activeTab === "risk-categories" && (compliance
-              ? <RiskCategories tags={compliance.risk_tags} />
-              : <p className="analysis-empty">Risk kategorileri compliance raporuyla oluşturulur.</p>)}
           </div>
         </section>
       )}

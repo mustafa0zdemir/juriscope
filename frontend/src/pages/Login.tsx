@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { Button, Icon } from "../components/ui";
 import "./Login.css";
 
 export default function Login() {
@@ -28,19 +29,15 @@ export default function Login() {
 
   return (
     <div className="login-page">
-      <div className="login-container">
+      <section className="login-brand-panel">
+        <div className="login-brand"><span>L</span><strong>Lexora</strong></div>
+        <div className="login-value"><p>LEGAL INTELLIGENCE PLATFORM</p><h1>Hukuki çalışmaları<br />daha güvenilir hale getirin.</h1><span>Kaynaklandırılmış AI analizi, sözleşme karşılaştırma ve merkezi hukuk bilgi tabanı tek çalışma alanında.</span></div>
+        <ul><li><Icon name="shield" />Trustworthy RAG ve doğrulanmış kaynaklar</li><li><Icon name="activity" />Açıklanabilir risk ve compliance analizi</li><li><Icon name="book" />Merkezi mevzuat ve emsal karar altyapısı</li></ul>
+        <small>© 2026 Lexora Legal Technologies</small>
+      </section>
+      <div className="login-form-side"><div className="login-container">
         <div className="login-header">
-          <div className="login-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-              <line x1="16" y1="13" x2="8" y2="13" />
-              <line x1="16" y1="17" x2="8" y2="17" />
-              <polyline points="10 9 9 9 8 9" />
-            </svg>
-          </div>
-          <h1>Sözleşme Analizi</h1>
-          <p className="login-subtitle">Sisteme giriş yapın</p>
+          <p>Güvenli çalışma alanı</p><h1>Tekrar hoş geldiniz</h1><span className="login-subtitle">Hesabınıza erişmek için bilgilerinizi girin.</span>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
@@ -71,19 +68,15 @@ export default function Login() {
             />
           </div>
 
-          <button
-            type="submit"
-            className="login-button"
-            disabled={isSubmitting}
-          >
+          <Button type="submit" icon="arrow" className="login-button" disabled={isSubmitting}>
             {isSubmitting ? "Giriş yapılıyor..." : "Giriş Yap"}
-          </button>
+          </Button>
         </form>
 
         <div className="login-footer">
-          <p>Demo: admin / admin123</p>
+          <p>Demo çalışma alanı: admin / admin123</p>
         </div>
-      </div>
+      </div></div>
     </div>
   );
 }

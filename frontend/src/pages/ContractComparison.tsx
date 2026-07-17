@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useContractComparison } from "../hooks/useContractComparison";
 import type { DetectedClause } from "../types";
+import { Badge, Button, Icon, SectionHeader } from "../components/ui";
 import "./ContractComparison.css";
 
 function ClauseColumn({ title, clauses, tone }: { title: string; clauses: DetectedClause[]; tone: string }) {
@@ -27,18 +28,18 @@ export default function ContractComparison() {
   return (
     <div className="comparison-page">
       <Link className="back-link" to="/dashboard">← Dashboard'a dön</Link>
-      <header><p className="eyebrow">Gelişmiş Analiz</p><h1>Sözleşme Karşılaştırma</h1><p>İki sürüm arasındaki madde, risk, hak ve yükümlülük değişimlerini inceleyin.</p></header>
+      <SectionHeader eyebrow="Gelişmiş Analiz" title="Sözleşme Karşılaştırma" description="İki sürüm arasındaki madde, risk, hak ve yükümlülük değişimlerini inceleyin." />
       <section className="comparison-form">
         <label>Temel sözleşme<select value={comparison.baseId ?? ""} onChange={(event) => comparison.setBaseId(Number(event.target.value))}>{comparison.contracts.map((contract) => <option value={contract.id} key={contract.id}>{contract.original_filename}</option>)}</select></label>
-        <span>→</span>
+        <span><Icon name="arrow" /></span>
         <label>Karşılaştırılacak sözleşme<select value={comparison.comparisonId ?? ""} onChange={(event) => comparison.setComparisonId(Number(event.target.value))}>{comparison.contracts.map((contract) => <option value={contract.id} key={contract.id}>{contract.original_filename}</option>)}</select></label>
-        <button disabled={!comparison.baseId || !comparison.comparisonId || comparison.baseId === comparison.comparisonId || comparison.isComparing} onClick={() => void comparison.compare()}>{comparison.isComparing ? "Karşılaştırılıyor..." : "Karşılaştır"}</button>
+        <Button icon="compare" disabled={!comparison.baseId || !comparison.comparisonId || comparison.baseId === comparison.comparisonId || comparison.isComparing} onClick={() => void comparison.compare()}>{comparison.isComparing ? "Karşılaştırılıyor..." : "Karşılaştır"}</Button>
       </section>
       {comparison.error && <p className="analysis-error">{comparison.error}</p>}
       {comparison.contracts.length < 2 && <p className="analysis-notice">Karşılaştırma için en az iki analize hazır sözleşme gerekir.</p>}
       {comparison.result && (
         <section className="comparison-results">
-          <div className="comparison-summary"><strong>{comparison.result.summary}</strong><span>{comparison.result.unchanged_clauses.length} değişmeyen kategori</span></div>
+          <div className="comparison-summary"><strong>{comparison.result.summary}</strong><Badge>{comparison.result.unchanged_clauses.length} değişmeyen kategori</Badge></div>
           <div className="comparison-grid">
             <ClauseColumn title="Eklenen Maddeler" clauses={comparison.result.added_clauses} tone="added" />
             <ClauseColumn title="Silinen Maddeler" clauses={comparison.result.removed_clauses} tone="removed" />

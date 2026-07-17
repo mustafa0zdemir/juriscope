@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useChat } from "../hooks/useChat";
 import type { ChatMessage, Citation } from "../types";
+import { Button, Icon } from "../components/ui";
 import "./Chat.css";
 
 function formatDate(value: string): string {
@@ -18,7 +19,8 @@ function CitationCard({ citation }: { citation: Citation }) {
   const isLegal = citation.source_type === "legal";
   return (
     <div className="citation-card">
-      <div className="citation-card-title">
+      <div className={`citation-source-icon source-${isLegal ? "legal" : "contract"}`}><Icon name={isLegal ? "book" : "document"} size={16} /></div>
+      <div className="citation-card-content"><div className="citation-card-title">
         {isLegal ? citation.title ?? "Hukuki kaynak" : `Sözleşme #${citation.contract_id}`}
       </div>
       <div className="citation-card-meta">
@@ -28,6 +30,8 @@ function CitationCard({ citation }: { citation: Citation }) {
         <span>Sayfa {citation.page ?? citation.page_number ?? "—"}</span>
         {!isLegal && <span>Chunk {citation.chunk_index}</span>}
         <span>Benzerlik {(citation.score * 100).toFixed(1)}%</span>
+        <span>Rerank {citation.rerank_score?.toFixed(2) ?? "—"}</span>
+      </div>
       </div>
     </div>
   );
@@ -55,7 +59,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 
   return (
     <article className={`chat-message ${isUser ? "user-message" : "assistant-message"}`}>
-      <div className="message-avatar">{isUser ? "S" : "✦"}</div>
+      <div className="message-avatar">{isUser ? <Icon name="user" size={15} /> : <Icon name="sparkle" size={15} />}</div>
       <div className="message-body">
         <div className="message-heading">
           <strong>{isUser ? "Siz" : "Sözleşme Asistanı"}</strong>
@@ -85,7 +89,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         )}
         {!isUser && message.content && !message.isStreaming && (
           <button type="button" className="copy-button" onClick={copyAnswer}>
-            {copied ? "Kopyalandı" : "Cevabı kopyala"}
+            <Icon name={copied ? "check" : "copy"} size={14} />{copied ? "Kopyalandı" : "Kopyala"}
           </button>
         )}
         {message.error && <div className="message-error">{message.error}</div>}
@@ -111,10 +115,18 @@ export default function Chat() {
   } = useChat();
   const [question, setQuestion] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 150)}px`;
+  }, [question]);
 
   const submitQuestion = async (event: FormEvent) => {
     event.preventDefault();
@@ -139,9 +151,7 @@ export default function Chat() {
             <span className="eyebrow">ÇALIŞMA ALANI</span>
             <h1>Sohbetler</h1>
           </div>
-          <button type="button" className="new-chat-button" onClick={() => void createConversation()}>
-            <span>+</span> Yeni
-          </button>
+          <Button type="button" icon="plus" onClick={() => void createConversation()}>Yeni</Button>
         </div>
         <div className="conversation-list">
           {conversations.length === 0 ? (
@@ -153,7 +163,7 @@ export default function Chat() {
                 key={conversation.id}
               >
                 <button type="button" className="conversation-select" onClick={() => void loadConversation(conversation.id)}>
-                  <span className="conversation-icon">◌</span>
+                  <span className="conversation-icon"><Icon name="chat" size={16} /></span>
                   <span className="conversation-copy">
                     <strong>{conversation.title}</strong>
                     <small>{formatDate(conversation.updated_at)}</small>
@@ -165,7 +175,7 @@ export default function Chat() {
                   aria-label="Sohbeti sil"
                   onClick={() => void deleteConversation(conversation.id)}
                 >
-                  ×
+                  <Icon name="trash" size={15} />
                 </button>
               </div>
             ))
@@ -179,7 +189,7 @@ export default function Chat() {
             <span className="eyebrow">RAG ANALİZİ</span>
             <h2>{activeConversationId ? conversations.find((item) => item.id === activeConversationId)?.title ?? "Sohbet" : "Yeni sözleşme sohbeti"}</h2>
           </div>
-          <span className="connection-status"><i /> Gemini hazır</span>
+          <span className="connection-status"><i /> Gemini · Güvenli RAG</span>
         </header>
 
         <div className="message-list">
@@ -187,7 +197,7 @@ export default function Chat() {
             <div className="chat-loading"><div className="spinner" /> Sohbet yükleniyor...</div>
           ) : messages.length === 0 ? (
             <div className="chat-empty-state">
-              <div className="empty-orb">✦</div>
+              <div className="empty-orb"><Icon name="sparkle" size={24} /></div>
               <h3>Sözleşmelerinizi birlikte inceleyelim</h3>
               <p>Bir sözleşme hakkında soru sorun. Cevapları kaynaklarıyla birlikte ve anlık olarak hazırlayacağım.</p>
               <div className="suggestion-list">
@@ -205,12 +215,13 @@ export default function Chat() {
         {error && (
           <div className="chat-error">
             <span>{error}</span>
-            {!isStreaming && <button type="button" onClick={() => void retryLastMessage()}>Tekrar dene</button>}
+            {!isStreaming && <Button type="button" variant="ghost" onClick={() => void retryLastMessage()}>Tekrar dene</Button>}
           </div>
         )}
 
         <form className="composer" onSubmit={(event) => void submitQuestion(event)}>
           <textarea
+            ref={textareaRef}
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
             onKeyDown={handleInputKeyDown}
@@ -222,9 +233,9 @@ export default function Chat() {
           <div className="composer-footer">
             <span>Enter gönderir · Shift + Enter yeni satır</span>
             {isStreaming ? (
-              <button type="button" className="stop-button" onClick={stopGeneration}>■ Durdur</button>
+              <Button type="button" variant="danger" icon="x" onClick={stopGeneration}>Üretimi durdur</Button>
             ) : (
-              <button type="submit" className="send-button" disabled={!question.trim()}>Gönder <span>↗</span></button>
+              <Button type="submit" icon="send" disabled={!question.trim()}>Gönder</Button>
             )}
           </div>
         </form>

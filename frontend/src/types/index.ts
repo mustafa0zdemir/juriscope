@@ -47,6 +47,7 @@ export interface Citation {
   chunk_index?: number | null;
   page_number?: number | null;
   score: number;
+  rerank_score?: number | null;
   source_type?: "contract" | "legal";
   document_id?: number | null;
   document_type?: LegalDocumentType | null;

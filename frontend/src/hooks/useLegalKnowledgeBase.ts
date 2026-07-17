@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../services/api";
 import type { LegalDocument, LegalDocumentListResponse } from "../types";
 
@@ -17,6 +17,10 @@ export function useLegalKnowledgeBase(enabled: boolean) {
   const [isLoading, setIsLoading] = useState(enabled);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("ALL");
+  const [page, setPage] = useState(1);
+  const pageSize = 8;
 
   const loadDocuments = useCallback(async () => {
     if (!enabled) return;
@@ -72,13 +76,31 @@ export function useLegalKnowledgeBase(enabled: boolean) {
     }
   }, []);
 
+  const filteredDocuments = useMemo(() => documents.filter((document) => {
+    const matchesSearch = `${document.title} ${document.source} ${document.official_number ?? ""}`.toLocaleLowerCase("tr-TR").includes(search.toLocaleLowerCase("tr-TR"));
+    return matchesSearch && (typeFilter === "ALL" || document.document_type === typeFilter);
+  }), [documents, search, typeFilter]);
+  const totalPages = Math.max(1, Math.ceil(filteredDocuments.length / pageSize));
+  const visibleDocuments = filteredDocuments.slice((page - 1) * pageSize, page * pageSize);
+
+  const updateSearch = useCallback((value: string) => { setSearch(value); setPage(1); }, []);
+  const updateTypeFilter = useCallback((value: string) => { setTypeFilter(value); setPage(1); }, []);
+
   return {
     documents,
+    visibleDocuments,
     selectedDocument,
     setSelectedDocument,
     isLoading,
     isUploading,
     error,
+    search,
+    typeFilter,
+    page,
+    totalPages,
+    setSearch: updateSearch,
+    setTypeFilter: updateTypeFilter,
+    setPage,
     uploadDocument,
     deleteDocument,
   };

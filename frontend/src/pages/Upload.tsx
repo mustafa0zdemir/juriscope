@@ -1,130 +1,38 @@
-import { useState, useRef, type DragEvent, type ChangeEvent } from "react";
-import api from "../services/api";
-import type { UploadResponse } from "../types";
+import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
+import { Link } from "react-router-dom";
+import { Button, Card, Icon, SectionHeader } from "../components/ui";
+import { useContractUpload } from "../hooks/useContractUpload";
 import "./Upload.css";
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1048576).toFixed(1)} MB`;
+}
 
 export default function Upload() {
   const [isDragging, setIsDragging] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [result, setResult] = useState<UploadResponse | null>(null);
-  const [error, setError] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const uploader = useContractUpload();
+  const select = (file?: File) => { if (file) void uploader.upload(file); };
+  const drop = (event: DragEvent) => { event.preventDefault(); setIsDragging(false); select(event.dataTransfer.files[0]); };
+  const change = (event: ChangeEvent<HTMLInputElement>) => select(event.target.files?.[0]);
 
-  const uploadFile = async (file: File) => {
-    setError("");
-    setResult(null);
-    setIsUploading(true);
-
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const response = await api.post<UploadResponse>("/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      setResult(response.data);
-    } catch {
-      setError("Dosya yüklenirken bir hata oluştu");
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleDragOver = (e: DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) uploadFile(file);
-  };
-
-  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) uploadFile(file);
-  };
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / 1048576).toFixed(1)} MB`;
-  };
-
-  return (
-    <div className="upload-page">
-      <div className="upload-header">
-        <h1>Dosya Yükle</h1>
-        <p>Analiz etmek istediğiniz sözleşmeyi yükleyin</p>
-      </div>
-
-      <div
-        className={`upload-dropzone ${isDragging ? "dragging" : ""} ${isUploading ? "uploading" : ""}`}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          onChange={handleFileSelect}
-          hidden
-          accept=".pdf,.doc,.docx,.txt"
-        />
-
-        {isUploading ? (
-          <div className="upload-loading">
-            <div className="spinner" />
-            <p>Yükleniyor...</p>
-          </div>
-        ) : (
-          <>
-            <div className="upload-icon">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="17 8 12 3 7 8" />
-                <line x1="12" y1="3" x2="12" y2="15" />
-              </svg>
-            </div>
-            <p className="upload-text">
-              Dosyayı sürükleyip bırakın veya <span>tıklayarak seçin</span>
-            </p>
-            <p className="upload-hint">PDF, DOC, DOCX, TXT — Maks. 50MB</p>
-          </>
-        )}
-      </div>
-
-      {error && <div className="upload-error">{error}</div>}
-
-      {result && (
-        <div className="upload-result">
-          <div className="result-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
-          </div>
-          <div className="result-info">
-            <h3>{result.message}</h3>
-            <p>
-              <strong>Dosya:</strong> {result.filename}
-            </p>
-            <p>
-              <strong>Boyut:</strong> {formatFileSize(result.size)}
-            </p>
-            <p>
-              <strong>Tür:</strong> {result.content_type}
-            </p>
-          </div>
-        </div>
-      )}
+  return <div className="upload-page">
+    <SectionHeader eyebrow="Doküman Yönetimi" title="Yeni sözleşme yükle" description="Sözleşmenizi güvenli belge pipeline’ına aktarın. Metin çıkarma, chunking ve embedding işlemleri otomatik başlar." />
+    <div className="upload-layout">
+      <Card className="upload-main-card">
+        <button className={`upload-dropzone ${isDragging ? "dragging" : ""}`} disabled={uploader.isUploading} onClick={() => inputRef.current?.click()} onDragOver={(event) => { event.preventDefault(); setIsDragging(true); }} onDragLeave={(event) => { event.preventDefault(); setIsDragging(false); }} onDrop={drop} type="button">
+          <input ref={inputRef} hidden type="file" accept=".pdf,.doc,.docx,.txt" onChange={change} />
+          {uploader.isUploading ? <><div className="spinner" /><h2>Belge güvenli şekilde yükleniyor</h2><p>Lütfen pencereyi kapatmayın.</p></> : <><span className="upload-illustration"><Icon name="upload" size={26} /></span><h2>Dosyayı buraya sürükleyin</h2><p>veya bilgisayarınızdan seçmek için tıklayın</p><span className="upload-formats">PDF · DOC · DOCX · TXT &nbsp; / &nbsp; Maksimum 50 MB</span></>}
+        </button>
+        {uploader.error && <div className="upload-error"><Icon name="alert" />{uploader.error}</div>}
+        {uploader.result && <div className="upload-result"><span><Icon name="check" /></span><div><h3>{uploader.result.message}</h3><p>{uploader.result.filename} · {formatFileSize(uploader.result.size)} · {uploader.result.content_type}</p></div><Link to="/dashboard"><Button variant="secondary">Dashboard'a dön</Button></Link></div>}
+      </Card>
+      <aside className="upload-guide">
+        <Card><span className="guide-icon"><Icon name="shield" /></span><h3>Güvenli işleme</h3><p>Dosyalarınız izole kullanıcı alanında saklanır ve yalnızca yetkili hesabınız tarafından erişilir.</p></Card>
+        <Card><span className="guide-icon"><Icon name="activity" /></span><h3>Otomatik pipeline</h3><ol><li><i>1</i>Metin çıkarma</li><li><i>2</i>Akıllı chunking</li><li><i>3</i>Embedding ve indeksleme</li><li><i>4</i>Analize hazır</li></ol></Card>
+      </aside>
     </div>
-  );
+  </div>;
 }
