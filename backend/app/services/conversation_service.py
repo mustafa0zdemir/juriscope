@@ -57,17 +57,23 @@ class ConversationService:
         content: str,
         model: str | None = None,
         latency_ms: int | None = None,
+        citations: list[dict] | None = None,
     ) -> ChatMessage:
         conversation = self.get_conversation_or_404(db, conversation_id)
         self.check_user_access(conversation, user_id)
-        return self.chat_message_repo.create(
+        if role == "user" and conversation.title == "Yeni Sohbet":
+            conversation.title = content[:250] + ("..." if len(content) > 250 else "")
+        message = self.chat_message_repo.create(
             db=db,
             conversation_id=conversation_id,
             role=role,
             content=content,
             model=model,
             latency_ms=latency_ms,
+            citations=citations,
         )
+        self.conversation_repo.touch(db, conversation_id)
+        return message
 
     def get_messages(self, db: Session, user_id: int, conversation_id: int) -> list[ChatMessage]:
         conversation = self.get_conversation_or_404(db, conversation_id)

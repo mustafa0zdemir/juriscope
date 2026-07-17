@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -39,3 +41,9 @@ class ConversationRepository:
             db.commit()
             return True
         return False
+
+    def touch(self, db: Session, conversation_id: int) -> None:
+        conversation = self.get(db, conversation_id)
+        if conversation:
+            conversation.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+            db.commit()

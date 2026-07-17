@@ -21,3 +21,44 @@ export interface UploadResponse {
   content_type: string;
   message: string;
 }
+
+export interface Citation {
+  contract_id: number;
+  chunk_id: number;
+  chunk_index: number;
+  page_number: number | null;
+  score: number;
+}
+
+export interface Conversation {
+  id: number;
+  user_id: number;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatMessage {
+  id: number;
+  conversation_id: number;
+  role: "user" | "assistant" | "system";
+  content: string;
+  model: string | null;
+  latency_ms: number | null;
+  citations: Citation[];
+  created_at: string;
+  isStreaming?: boolean;
+  error?: string;
+}
+
+export interface ChatQueryRequest {
+  question: string;
+  conversation_id?: number;
+  contract_ids?: number[];
+  top_k?: number;
+}
+
+export interface StreamEvent {
+  event: "start" | "token" | "citations" | "done" | "error";
+  data: Record<string, unknown>;
+}

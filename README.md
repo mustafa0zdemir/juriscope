@@ -139,7 +139,33 @@ Sisteme kalıcı sohbet (conversation) özelliği eklenmiştir. RAG üzerinden s
 - **ChatMessage**: Her bir sohbet içindeki mesajları (user/assistant) ve LLM meta verilerini (model, latency vb.) tutar. `conversations` tablosuyla ilişkilidir. 
 - `/api/v1/chat/query` kullanıldığında; eğer istekte `conversation_id` mevcut değilse sistem otomatik olarak kullanıcının sorusuna göre bir başlık belirleyip yeni bir sohbet başlatır.
 
-Bu mimari sayesinde eski konuşmalar listelenebilir, detaylarına bakılabilir ve sistem gelecekte eklenecek "Streaming", "Memory" veya "Chat UI" özellikleri için hazır hale getirilmiştir.
+Bu mimari sayesinde eski konuşmalar listelenebilir, detaylarına bakılabilir ve streaming chat arayüzüyle birlikte kullanılabilir.
+
+### Streaming Chat ve React Arayüzü
+
+Sprint 11 ile gerçek zamanlı sohbet deneyimi eklenmiştir. `/chat` ekranında
+conversation listesi, geçmiş mesajlar, Markdown cevaplar ve citation kartları
+görüntülenir. Kullanıcı yeni sohbet oluşturabilir, sohbet silebilir, geçmişi
+açabilir, cevabı kopyalayabilir veya üretimi durdurabilir.
+
+Streaming akışı:
+
+```
+JWT + soru
+    → POST /api/v1/chat/stream
+    → Retriever / ContextBuilder / PromptBuilder
+    → GeminiProvider.generate_content_stream
+    → SSE: start → token* → citations → done
+    → Tamamlanan assistant mesajının kaydedilmesi
+```
+
+SSE sırasında hata oluşursa `error` eventi gönderilir. Kullanıcı bağlantıyı
+kapatır veya üretimi durdurursa yarım assistant cevabı veritabanına yazılmaz.
+Tamamlanan assistant mesajları citation bilgileriyle birlikte saklanır.
+
+Frontend streaming için `frontend/src/services/chatStream.ts`, state ve API
+orkestrasyonu için `frontend/src/hooks/useChat.ts` kullanır. Markdown ve GFM
+tabloları `react-markdown` ve `remark-gfm` ile render edilir.
 
 ### Document Processing Pipeline
 
@@ -250,6 +276,7 @@ Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
 | DELETE | `/api/v1/contracts/{id}` | Sözleşmeyi ve MinIO dosyasını sil |
 | POST | `/api/v1/search` | Vektör DB'de anlamsal arama (Semantic Search) yap |
 | POST | `/api/v1/chat/query` | Retrieval context'ini Gemini ile cevaplar ve mesaja kaydeder |
+| POST | `/api/v1/chat/stream` | Gemini cevabını SSE ile parça parça döndürür |
 | POST | `/api/v1/chat/prompt-preview` | LLM çağrısı olmadan prompt önizlemesi |
 | GET | `/api/v1/conversations` | Kullanıcının tüm sohbetlerini listele |
 | POST | `/api/v1/conversations` | Yeni bir sohbet oluştur |

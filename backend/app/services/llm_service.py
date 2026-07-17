@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Iterator
 
 from app.config.settings import settings
 from app.core.exceptions import LLMConfigurationException, LLMUnavailableException
@@ -38,4 +39,20 @@ class LLMService:
             logger.exception("LLM cevabı oluşturulamadı")
             raise LLMUnavailableException(
                 detail="LLM servisi kullanılamıyor"
+            ) from None
+
+    def generate_stream(self, prompt: str) -> Iterator[str]:
+        try:
+            yield from self.provider.generate_stream(prompt)
+        except (LLMConfigurationException, LLMUnavailableException):
+            raise
+        except TimeoutError:
+            logger.warning("LLM streaming isteği zaman aşımına uğradı")
+            raise LLMUnavailableException(
+                detail="LLM streaming isteği zaman aşımına uğradı"
+            ) from None
+        except Exception:
+            logger.exception("LLM streaming cevabı oluşturulamadı")
+            raise LLMUnavailableException(
+                detail="LLM streaming servisi kullanılamıyor"
             ) from None

@@ -1,5 +1,7 @@
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.schemas.chat import CitationResponse
 
 
 class ChatMessageBase(BaseModel):
@@ -7,6 +9,12 @@ class ChatMessageBase(BaseModel):
     content: str
     model: str | None = None
     latency_ms: int | None = None
+    citations: list[CitationResponse] = Field(default_factory=list)
+
+    @field_validator("citations", mode="before")
+    @classmethod
+    def normalize_citations(cls, value):
+        return value or []
 
 
 class ChatMessageResponse(ChatMessageBase):

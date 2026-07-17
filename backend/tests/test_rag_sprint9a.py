@@ -213,7 +213,11 @@ def test_chat_query_endpoint_returns_answer_contract() -> None:
     }
     fake_service = SimpleNamespace(query=lambda **kwargs: fake_result)
 
-    with patch.object(chat, "RAGService", return_value=fake_service):
+    with (
+        patch.object(chat, "RAGService", return_value=fake_service),
+        patch.object(chat, "_get_or_create_conversation", return_value=SimpleNamespace(id=1)),
+        patch.object(chat, "ConversationService"),
+    ):
         response = chat.chat_query(
             ChatQueryRequest(question="Soru"), object(), SimpleNamespace(id=7)
         )

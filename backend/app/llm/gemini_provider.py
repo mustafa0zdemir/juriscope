@@ -1,5 +1,6 @@
 import logging
 import socket
+from collections.abc import Iterator
 
 from app.config.settings import settings
 from app.core.exceptions import LLMConfigurationException, LLMUnavailableException
@@ -100,4 +101,51 @@ class GeminiProvider(LLMProvider):
             logger.exception("Gemini API çağrısı başarısız oldu")
             raise LLMUnavailableException(
                 detail="Gemini API erişilemiyor"
+            ) from exc
+
+    def _generation_config(self):
+        try:
+            from google.genai import types
+
+            return types.GenerateContentConfig(
+                max_output_tokens=settings.max_output_tokens,
+                temperature=settings.temperature,
+                top_p=settings.top_p,
+            )
+        except ImportError:
+            if self._client is None:
+                raise
+            return {
+                "max_output_tokens": settings.max_output_tokens,
+                "temperature": settings.temperature,
+                "top_p": settings.top_p,
+            }
+
+    def generate_stream(self, prompt: str) -> Iterator[str]:
+        try:
+            response_stream = self.client.models.generate_content_stream(
+                model=self.model_name,
+                contents=prompt,
+                config=self._generation_config(),
+            )
+            for response in response_stream:
+                text = response.text or ""
+                if text:
+                    yield text
+        except LLMUnavailableException:
+            raise
+        except (TimeoutError, socket.timeout) as exc:
+            logger.warning("Gemini streaming isteği zaman aşımına uğradı")
+            raise LLMUnavailableException(
+                detail="Gemini streaming isteği zaman aşımına uğradı"
+            ) from exc
+        except Exception as exc:
+            if "timeout" in type(exc).__name__.lower():
+                logger.warning("Gemini streaming isteği zaman aşımına uğradı")
+                raise LLMUnavailableException(
+                    detail="Gemini streaming isteği zaman aşımına uğradı"
+                ) from exc
+            logger.exception("Gemini streaming çağrısı başarısız oldu")
+            raise LLMUnavailableException(
+                detail="Gemini streaming servisine erişilemiyor"
             ) from exc

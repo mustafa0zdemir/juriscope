@@ -1,4 +1,7 @@
+import json
+
 from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.dependencies.auth import get_current_user
@@ -58,31 +61,41 @@ def _to_preview_response(result) -> PromptPreviewResponse:
     )
 
 
+def _format_sse(event: str, data: dict) -> str:
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+def _get_or_create_conversation(db, user_id: int, conversation_id: int | None, question: str):
+    conversation_service = ConversationService()
+    if conversation_id:
+        conversation = conversation_service.get_conversation(
+            db=db, user_id=user_id, conversation_id=conversation_id
+        )
+    else:
+        title = question[:250] + ("..." if len(question) > 250 else "")
+        conversation = conversation_service.create_conversation(
+            db=db, user_id=user_id, title=title
+        )
+    conversation_service.add_message(
+        db=db,
+        user_id=user_id,
+        conversation_id=conversation.id,
+        role="user",
+        content=question,
+    )
+    return conversation
+
+
 @router.post("/query", response_model=ChatQueryResponse)
 def chat_query(
     request: ChatQueryRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    conversation_service = ConversationService()
-    
-    if request.conversation_id:
-        conversation = conversation_service.get_conversation(
-            db=db, user_id=current_user.id, conversation_id=request.conversation_id
-        )
-    else:
-        title = request.question[:250] + ("..." if len(request.question) > 250 else "")
-        conversation = conversation_service.create_conversation(
-            db=db, user_id=current_user.id, title=title
-        )
-        
-    conversation_service.add_message(
-        db=db,
-        user_id=current_user.id,
-        conversation_id=conversation.id,
-        role="user",
-        content=request.question
+    conversation = _get_or_create_conversation(
+        db, current_user.id, request.conversation_id, request.question
     )
+    conversation_service = ConversationService()
 
     result = RAGService().query(db=db, user_id=current_user.id, request=request)
     
@@ -93,10 +106,42 @@ def chat_query(
         role="assistant",
         content=result.answer,
         model=result.model,
-        latency_ms=result.latency_ms
+        latency_ms=result.latency_ms,
+        citations=[citation.to_dict() for citation in result.citations],
     )
     
     return _to_query_response(result, conversation_id=conversation.id)
+
+
+@router.post("/stream")
+def chat_stream(
+    request: ChatQueryRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    conversation = _get_or_create_conversation(
+        db, current_user.id, request.conversation_id, request.question
+    )
+    events = RAGService().stream_query(
+        db=db,
+        user_id=current_user.id,
+        request=request,
+        conversation_id=conversation.id,
+    )
+
+    def event_stream():
+        for event in events:
+            yield _format_sse(event.event, event.data)
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.post("/prompt-preview", response_model=PromptPreviewResponse)

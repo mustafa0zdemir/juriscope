@@ -28,6 +28,9 @@ export default function Navbar() {
         <NavLink to="/upload" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
           Yükle
         </NavLink>
+        <NavLink to="/chat" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
+          Sohbet
+        </NavLink>
       </div>
 
       <div className="navbar-user">

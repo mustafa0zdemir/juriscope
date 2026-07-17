@@ -13,6 +13,7 @@ class ChatMessageRepository:
         content: str,
         model: str | None = None,
         latency_ms: int | None = None,
+        citations: list[dict] | None = None,
     ) -> ChatMessage:
         message = ChatMessage(
             conversation_id=conversation_id,
@@ -20,6 +21,7 @@ class ChatMessageRepository:
             content=content,
             model=model,
             latency_ms=latency_ms,
+            citations=citations,
         )
         db.add(message)
         db.commit()
