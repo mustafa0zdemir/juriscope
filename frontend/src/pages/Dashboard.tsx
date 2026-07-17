@@ -88,6 +88,17 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {user?.is_admin && (
+        <Link className="legal-kb-banner" to="/legal-kb">
+          <div>
+            <span className="eyebrow">YÖNETİCİ</span>
+            <strong>Legal Knowledge Base</strong>
+            <p>Kanun, yönetmelik ve emsal kararları merkezi bilgi tabanında yönetin.</p>
+          </div>
+          <span>Yönetim ekranını aç →</span>
+        </Link>
+      )}
+
       <div className="dashboard-section">
         <h2>Sözleşmeler</h2>
         {!isLoading && contracts.length > 0 ? (

@@ -211,6 +211,76 @@ Riskler, Eksik Maddeler, Belirsiz Maddeler, Tek Taraflı Maddeler, Öneriler ve
 Kaynaklar sekmelerinde gösterilir. Bu endpoint streaming kullanmaz; mevcut chat
 streaming akışı değişmeden korunur.
 
+### Legal Knowledge Base
+
+Legal Knowledge Base; kanun, yönetmelik, tebliğ ve yüksek mahkeme kararlarını
+kullanıcı sözleşmelerinden bağımsız, merkezi bir kaynak havuzunda tutar. Normal
+kullanıcılar legal belge yükleyemez veya yönetemez. `/api/v1/legal` yönetim
+endpointlerinin tamamı `is_admin=true` kullanıcılara açıktır; migration mevcut
+`admin` hesabını otomatik olarak yönetici yapar.
+
+Desteklenen belge türleri:
+
+- `LAW`, `REGULATION`, `COMMUNIQUE`
+- `SUPREME_COURT`, `COUNCIL_OF_STATE`, `CONSTITUTIONAL_COURT`
+- `OTHER`
+
+#### Legal Ingestion Pipeline
+
+```text
+Admin PDF/DOCX yükleme
+    → MinIO legal/{document_type}/... depolama
+    → Mevcut PDF/DOCX parser
+    → FixedSizeChunkStrategy
+    → BAAI/bge-m3 embedding
+    → Qdrant legal_documents collection
+    → LegalChunk metadata ve embedded durumu
+```
+
+Contract vektörleri `contracts`, legal kaynaklar `legal_documents` collection'ında
+tutulur. İki collection birbirinden bağımsızdır. Legal metadata; belge türü,
+başlık, resmî numara, yayın tarihi, madde, mahkeme ve karar numarasını taşır.
+
+#### Multi-Source Retrieval
+
+```text
+Kullanıcı sorusu
+    ├─ Contract Hybrid Search
+    └─ Legal Vector Search + BM25
+             ↓
+       Ortak aday havuzu
+             ↓
+       Cross Encoder re-ranking
+             ↓
+ KULLANICI SÖZLEŞMESİ / KANUNLAR / EMSAL KARARLAR context bölümleri
+             ↓
+        Gemini + Legal Citation
+```
+
+Chat, streaming ve Legal Analysis varsayılan olarak bu çok kaynaklı context'i
+kullanır. `ENABLE_MULTI_SOURCE_RAG=false` ile eski contract-only akışa,
+`ENABLE_LEGAL_SEARCH=false` ile legal araması kapalı çalışma moduna dönülebilir.
+
+```env
+LEGAL_COLLECTION=legal_documents
+ENABLE_LEGAL_SEARCH=true
+ENABLE_MULTI_SOURCE_RAG=true
+LEGAL_TOP_K=10
+LEGAL_RERANK_TOP_N=5
+```
+
+#### Legal Management API
+
+| Method | Endpoint | Yetki | Açıklama |
+|--------|----------|-------|----------|
+| POST | `/api/v1/legal/upload` | Admin | PDF/DOCX legal belge yükler ve ingestion başlatır |
+| GET | `/api/v1/legal` | Admin | Legal belgeleri listeler |
+| GET | `/api/v1/legal/{id}` | Admin | Legal belge detayını getirir |
+| DELETE | `/api/v1/legal/{id}` | Admin | MinIO, Qdrant ve veritabanından legal belgeyi siler |
+
+Frontend'deki `/legal-kb` ekranı yalnızca admin kullanıcıya gösterilir. Bu
+ekrandan belge yükleme, listeleme, detay görüntüleme ve silme yapılabilir.
+
 ### RAG Orchestrator (Sprint 9A)
 
 Sprint 9A, Retrieval katmanını henüz bir LLM çağrısı yapmadan üretime hazır bir
@@ -423,6 +493,10 @@ Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
 | GET | `/api/v1/contracts/{id}/download` | Dosyayı MinIO'dan indir |
 | DELETE | `/api/v1/contracts/{id}` | Sözleşmeyi ve MinIO dosyasını sil |
 | POST | `/api/v1/contracts/{id}/analyze` | Sözleşme için yapılandırılmış hukuki analiz üret |
+| POST | `/api/v1/legal/upload` | Admin olarak legal belge yükle ve ingestion başlat |
+| GET | `/api/v1/legal` | Admin olarak legal belgeleri listele |
+| GET | `/api/v1/legal/{id}` | Admin olarak legal belge detayını getir |
+| DELETE | `/api/v1/legal/{id}` | Admin olarak legal belgeyi sil |
 | POST | `/api/v1/search` | Vector, keyword veya hybrid sözleşme araması yap |
 | POST | `/api/v1/chat/query` | Hybrid retrieval context'ini Gemini ile cevaplar ve mesaja kaydeder |
 | POST | `/api/v1/chat/stream` | Hybrid retrieval sonrası Gemini cevabını SSE ile parça parça döndürür |

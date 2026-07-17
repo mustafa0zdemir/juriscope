@@ -31,6 +31,11 @@ export default function Navbar() {
         <NavLink to="/chat" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
           Sohbet
         </NavLink>
+        {user?.is_admin && (
+          <NavLink to="/legal-kb" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
+            Hukuk KB
+          </NavLink>
+        )}
       </div>
 
       <div className="navbar-user">

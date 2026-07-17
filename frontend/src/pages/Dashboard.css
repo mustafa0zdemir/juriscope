@@ -97,6 +97,30 @@
   margin-top: 1rem;
 }
 
+.legal-kb-banner {
+  align-items: center;
+  background: linear-gradient(135deg, var(--bg-card), rgba(99, 102, 241, 0.16));
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-lg);
+  color: var(--text-primary);
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  padding: 1.2rem 1.4rem;
+}
+
+.legal-kb-banner strong {
+  display: block;
+  font-size: 1.05rem;
+  margin: 0.15rem 0;
+}
+
+.legal-kb-banner p,
+.legal-kb-banner > span {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
 .dashboard-section h2 {
   font-size: 1.125rem;
   font-weight: 600;

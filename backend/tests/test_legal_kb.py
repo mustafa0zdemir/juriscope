@@ -1,6 +1,8 @@
-from datetime import date
+import asyncio
+import io
+from datetime import date, datetime
 from types import SimpleNamespace
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 from fastapi import BackgroundTasks, UploadFile
 
@@ -55,9 +57,47 @@ def make_contract_result() -> SearchResult:
 
 
 def test_non_admin_cannot_access_legal_management(client) -> None:
-    response = client.get("/api/v1/legal")
+    response = client.post(
+        "/api/v1/legal/upload",
+        data={"title": "Kanun", "document_type": "LAW", "source": "Resmî Gazete"},
+        files={"file": ("kanun.pdf", b"pdf", "application/pdf")},
+    )
 
     assert response.status_code == 403
+
+
+def test_admin_can_upload_legal_document(client, current_user, db) -> None:
+    current_user.is_admin = True
+    db.commit()
+    document = LegalDocument(
+        id=5,
+        title="İş Kanunu",
+        document_type=LegalDocumentType.LAW,
+        source="Resmî Gazete",
+        official_number="4857",
+        original_filename="is-kanunu.pdf",
+        storage_key="legal/law/is-kanunu.pdf",
+        mime_type="application/pdf",
+        file_size=100,
+        status="uploaded",
+        language="tr",
+        created_at=datetime(2026, 1, 1),
+        updated_at=datetime(2026, 1, 1),
+    )
+    ingestion = SimpleNamespace(upload=AsyncMock(return_value=document))
+
+    with patch(
+        "app.api.v1.endpoints.legal.LegalIngestionService",
+        return_value=ingestion,
+    ):
+        response = client.post(
+            "/api/v1/legal/upload",
+            data={"title": "İş Kanunu", "document_type": "LAW", "source": "Resmî Gazete"},
+            files={"file": ("is-kanunu.pdf", b"pdf", "application/pdf")},
+        )
+
+    assert response.status_code == 202
+    assert response.json()["title"] == "İş Kanunu"
 
 
 def test_admin_can_list_legal_documents(client, current_user, db) -> None:
@@ -87,9 +127,9 @@ def test_admin_can_list_legal_documents(client, current_user, db) -> None:
 def test_legal_upload_service_stores_file_and_schedules_ingestion(db) -> None:
     storage = SimpleNamespace(upload=Mock())
     background_tasks = BackgroundTasks()
-    upload = UploadFile(filename="kanun.pdf", file=__import__("io").BytesIO(b"pdf-content"))
+    upload = UploadFile(filename="kanun.pdf", file=io.BytesIO(b"pdf-content"))
 
-    document = __import__("asyncio").run(
+    document = asyncio.run(
         LegalIngestionService().upload(
             db=db,
             file=upload,

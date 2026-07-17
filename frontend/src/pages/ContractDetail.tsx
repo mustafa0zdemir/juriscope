@@ -160,9 +160,17 @@ export default function ContractDetail() {
                 {analysis.citations.map((citation, index) => (
                   <article className="citation-card" key={citation.chunk_id}>
                     <strong>Kaynak {index + 1}</strong>
-                    <span>Sözleşme #{citation.contract_id}</span>
-                    <span>Sayfa {citation.page_number ?? "belirtilmemiş"}</span>
-                    <span>Chunk {citation.chunk_index} · Skor {citation.score.toFixed(2)}</span>
+                    {citation.source_type === "legal" ? (
+                      <>
+                        <span>{citation.title ?? "Hukuki kaynak"}</span>
+                        <span>{citation.court ?? citation.document_type}</span>
+                        <span>{citation.official_number ?? citation.decision_number ?? "Numara belirtilmemiş"}</span>
+                      </>
+                    ) : (
+                      <span>Sözleşme #{citation.contract_id}</span>
+                    )}
+                    <span>Sayfa {citation.page ?? citation.page_number ?? "belirtilmemiş"}</span>
+                    <span>Skor {citation.score.toFixed(2)}</span>
                   </article>
                 ))}
               </div>

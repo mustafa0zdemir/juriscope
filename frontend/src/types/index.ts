@@ -13,6 +13,7 @@ export interface User {
   username: string;
   email: string;
   full_name: string;
+  is_admin: boolean;
 }
 
 export interface UploadResponse {
@@ -41,11 +42,21 @@ export interface ContractListResponse {
 }
 
 export interface Citation {
-  contract_id: number;
+  contract_id?: number | null;
   chunk_id: number;
-  chunk_index: number;
-  page_number: number | null;
+  chunk_index?: number | null;
+  page_number?: number | null;
   score: number;
+  source_type?: "contract" | "legal";
+  document_id?: number | null;
+  document_type?: LegalDocumentType | null;
+  title?: string | null;
+  official_number?: string | null;
+  article?: string | null;
+  court?: string | null;
+  decision_number?: string | null;
+  publication_date?: string | null;
+  page?: number | null;
 }
 
 export interface Conversation {
@@ -114,4 +125,33 @@ export interface LegalAnalysis {
   one_sided_clauses: AnalysisFinding[];
   recommendations: LegalRecommendation[];
   citations: Citation[];
+}
+
+export type LegalDocumentType =
+  | "LAW"
+  | "REGULATION"
+  | "COMMUNIQUE"
+  | "SUPREME_COURT"
+  | "COUNCIL_OF_STATE"
+  | "CONSTITUTIONAL_COURT"
+  | "OTHER";
+
+export interface LegalDocument {
+  id: number;
+  title: string;
+  document_type: LegalDocumentType;
+  source: string;
+  official_number: string | null;
+  publication_date: string | null;
+  language: string;
+  status: string;
+  original_filename: string;
+  file_size: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LegalDocumentListResponse {
+  items: LegalDocument[];
+  total: number;
 }

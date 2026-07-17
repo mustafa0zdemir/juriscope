@@ -15,12 +15,18 @@ function formatDate(value: string): string {
 }
 
 function CitationCard({ citation }: { citation: Citation }) {
+  const isLegal = citation.source_type === "legal";
   return (
     <div className="citation-card">
-      <div className="citation-card-title">Sözleşme #{citation.contract_id}</div>
+      <div className="citation-card-title">
+        {isLegal ? citation.title ?? "Hukuki kaynak" : `Sözleşme #${citation.contract_id}`}
+      </div>
       <div className="citation-card-meta">
-        <span>Sayfa {citation.page_number ?? "—"}</span>
-        <span>Chunk {citation.chunk_index}</span>
+        {isLegal && <span>{citation.document_type}</span>}
+        {isLegal && citation.official_number && <span>No: {citation.official_number}</span>}
+        {isLegal && citation.article && <span>Madde {citation.article}</span>}
+        <span>Sayfa {citation.page ?? citation.page_number ?? "—"}</span>
+        {!isLegal && <span>Chunk {citation.chunk_index}</span>}
         <span>Benzerlik {(citation.score * 100).toFixed(1)}%</span>
       </div>
     </div>
@@ -72,7 +78,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
             <div className="citation-list-heading">Kaynaklar</div>
             <div className="citation-grid">
               {message.citations.map((citation) => (
-                <CitationCard key={`${citation.contract_id}-${citation.chunk_id}`} citation={citation} />
+                <CitationCard key={`${citation.source_type}-${citation.document_id ?? citation.contract_id}-${citation.chunk_id}`} citation={citation} />
               ))}
             </div>
           </div>

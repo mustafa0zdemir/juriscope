@@ -36,6 +36,8 @@ Verilen sözleşme kaynaklarını incele. Riskleri madde bazında tespit et; KVK
 mücbir sebep, gizlilik, uyuşmazlık çözümü ve yetkili mahkeme gibi eksik olabilecek
 maddeleri değerlendir. "Makul süre", "gerekli görüldüğünde" ve "uygun şartlarda"
 gibi belirsiz ifadeleri; taraflardan birini orantısız koruyan hükümleri ayrıca belirt.
+Önce kullanıcı sözleşmesini, ardından ilgili mevzuatı ve son olarak emsal kararları
+değerlendir. Sözleşme ile mevzuat çelişiyorsa bunu açıkça belirt.
 
 KAYNAK KULLANIM KURALLARI
 - Yalnızca aşağıdaki kaynaklardaki bilgiye dayan.

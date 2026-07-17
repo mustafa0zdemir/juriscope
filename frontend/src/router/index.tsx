@@ -6,6 +6,7 @@ import Upload from "../pages/Upload";
 import NotFound from "../pages/NotFound";
 import Chat from "../pages/Chat";
 import ContractDetail from "../pages/ContractDetail";
+import LegalKnowledgeBase from "../pages/LegalKnowledgeBase";
 import AuthGuard from "../components/AuthGuard";
 
 export const router = createBrowserRouter([
@@ -39,6 +40,10 @@ export const router = createBrowserRouter([
           {
             path: "contracts/:contractId",
             element: <ContractDetail />,
+          },
+          {
+            path: "legal-kb",
+            element: <LegalKnowledgeBase />,
           },
         ],
       },
