@@ -1,0 +1,1 @@
+"""Hukuki analiz domain modelleri."""

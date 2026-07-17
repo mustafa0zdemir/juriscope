@@ -1,0 +1,1 @@
+"""Sözleşme hukuki analiz bileşenleri."""

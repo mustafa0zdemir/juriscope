@@ -1,0 +1,1 @@
+"""Hukuki analiz API şemaları."""
