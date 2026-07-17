@@ -19,6 +19,7 @@ class SearchRequest(BaseModel):
         default=SearchMode(settings.default_search_mode),
         description="Arama modu: vector, keyword veya hybrid",
     )
+    rerank: bool = Field(default=True, description="Cross Encoder re-ranking uygula")
 
 
 class SearchResultItem(BaseModel):
@@ -31,12 +32,17 @@ class SearchResultItem(BaseModel):
     metadata: dict
     vector_score: float | None = None
     keyword_score: float | None = None
+    bm25_score: float | None = None
+    hybrid_score: float | None = None
+    rerank_score: float | None = None
+    final_rank: int | None = None
 
 
 class SearchDebugResponse(BaseModel):
     vector_hits: list[SearchResultItem]
     keyword_hits: list[SearchResultItem]
     merged_hits: list[SearchResultItem]
+    reranked_hits: list[SearchResultItem]
 
 
 class SearchResponse(BaseModel):

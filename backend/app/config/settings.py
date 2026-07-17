@@ -45,6 +45,11 @@ class Settings(BaseSettings):
 
     default_search_mode: str = "hybrid"
     enable_debug_search: bool = False
+    rerank_enabled: bool = True
+    rerank_model: str = "BAAI/bge-reranker-v2-m3"
+    rerank_input_limit: int = 20
+    rerank_top_n: int = 5
+    rerank_timeout_seconds: float = 30.0
 
     upload_dir: str = "uploads"
     max_upload_size_mb: int = 20

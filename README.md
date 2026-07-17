@@ -53,7 +53,8 @@ contracts/
 * **Mimari**: `RetrievalProvider` soyut sınıfı, Open/Closed prensibine uygun genişletilebilir yapı.
 * **QdrantRetriever**: Cosine similarity ile Qdrant üzerinde anlamsal arama.
 * **BM25Service**: Yetkili sözleşmelerin `DocumentChunk.text` alanlarından bellek içi Okapi BM25 indeksi oluşturur.
-* **HybridRetriever**: Vektör ve BM25 sonuçlarını normalize eder, aynı chunk'ları tekilleştirir ve Top-K'yı son aşamada uygular.
+* **HybridRetriever**: Vektör ve BM25 sonuçlarını normalize eder, aynı chunk'ları tekilleştirir ve re-ranking için aday havuzu oluşturur.
+* **ReRankService**: Hybrid adaylarını Cross Encoder ile yeniden sıralar; yalnızca en alakalı Top-N sonucu RAG context'ine gönderir.
 * **Query Embedding**: Kullanıcı sorgusu aynı `BAAI/bge-m3` modeli ile embedding'e dönüştürülür.
 * **Güvenlik**: Qdrant payload filtresi ve BM25 sorgusundaki sözleşme filtresi yalnızca kullanıcının kendi belgelerini kapsar.
 * **Top-K**: Varsayılan 5, API üzerinden 1-20 arası değiştirilebilir.
@@ -63,7 +64,9 @@ POST /api/v1/search
     → JWT Doğrulama
     → Yetkili sözleşmeleri doğrula
     → Vector Search (Qdrant) + Keyword Search (BM25)
-    → Skor normalizasyonu, tekilleştirme ve Top-K
+    → Skor normalizasyonu, tekilleştirme ve Hybrid adayları
+    → Cross Encoder re-ranking (opsiyonel)
+    → Son Top-N sonuç
     → SearchResponse [score, chunk_id, text, metadata, ...]
 ```
 
@@ -89,8 +92,9 @@ ENABLE_DEBUG_SEARCH=false
 ```
 
 `ENABLE_DEBUG_SEARCH=true` yapıldığında yanıtlar `vector_hits`, `keyword_hits`
-ve `merged_hits` alanlarını içerir. Bu alanlar normalde kapalıdır ve üretimde
-yalnızca teşhis amacıyla açılmalıdır.
+`merged_hits` ve `reranked_hits` alanlarını içerir. Bu alanlardaki
+`vector_score`, `bm25_score`, `hybrid_score`, `rerank_score` ve `final_rank`
+bilgileri normalde kapalıdır ve üretimde yalnızca teşhis amacıyla açılmalıdır.
 
 Örnek istek:
 
@@ -99,9 +103,48 @@ yalnızca teşhis amacıyla açılmalıdır.
   "question": "4857 sayılı Kanun'un 17. maddesindeki bildirim süresi nedir?",
   "contract_ids": [12],
   "top_k": 5,
-  "search_mode": "hybrid"
+  "search_mode": "hybrid",
+  "rerank": true
 }
 ```
+
+### Cross Encoder Re-ranking
+
+Hybrid Search hızlı aday üretimi yapar: Vector Search anlamsal yakınlığı, BM25
+ise kesin kelime ve numara eşleşmesini ölçer. Cross Encoder ise soru ve her
+aday chunk'ı birlikte değerlendirerek ilişkiyi daha yüksek doğrulukla skorlar.
+Bu nedenle yalnızca Hybrid Search'ün ilk adayları üzerinde çalışır.
+
+```
+Kullanıcı sorusu
+    → Embedding
+    → Vector Search + BM25 Search
+    → Hybrid Merge
+    → İlk RERANK_INPUT_LIMIT aday (varsayılan 20)
+    → BAAI/bge-reranker-v2-m3 Cross Encoder
+    → RERANK_TOP_N sonuç (varsayılan 5)
+    → ContextBuilder → PromptBuilder → Gemini
+```
+
+`CrossEncoderProvider`, `BAAI/bge-reranker-v2-m3` modelini yalnızca ilk aktif
+re-ranking isteğinde CPU üzerinde yükler ve süreç boyunca singleton olarak
+yeniden kullanır. Böylece yüzlerce MB'lık model her istek için tekrar
+indirilmez veya belleğe alınmaz. Model ya da inference hatasında sistem güvenli
+şekilde Hybrid Search sıralamasına geri döner; mevcut chat ve streaming akışı
+kesilmez.
+
+```env
+RERANK_ENABLED=true
+RERANK_MODEL=BAAI/bge-reranker-v2-m3
+RERANK_INPUT_LIMIT=20
+RERANK_TOP_N=5
+RERANK_TIMEOUT_SECONDS=30
+```
+
+`rerank` istek alanı varsayılan olarak `true`dur. İstemci bazında performans
+karşılaştırması yapmak için `false` gönderilebilir; `RERANK_ENABLED=false`
+ortam ayarı ise re-ranking katmanını uygulama genelinde kapatır ve modeli hiç
+yüklemez.
 
 ### RAG Orchestrator (Sprint 9A)
 

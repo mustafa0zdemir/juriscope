@@ -10,6 +10,7 @@ class ChatQueryRequest(BaseModel):
     top_k: int = Field(default=5, ge=1, le=20)
     conversation_id: int | None = Field(default=None)
     search_mode: SearchMode = Field(default=SearchMode(settings.default_search_mode))
+    rerank: bool = Field(default=True)
 
 
 

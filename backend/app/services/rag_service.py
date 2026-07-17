@@ -199,6 +199,7 @@ class RAGService:
                 contract_ids=request.contract_ids,
                 top_k=request.top_k,
                 search_mode=request.search_mode.value,
+                rerank=request.rerank,
             )
             return retrieval_result.results, retrieval_result.debug
 
@@ -219,4 +220,5 @@ class RAGService:
             "vector_hits": [hit.__dict__ for hit in debug.vector_hits],
             "keyword_hits": [hit.__dict__ for hit in debug.keyword_hits],
             "merged_hits": [hit.__dict__ for hit in debug.merged_hits],
+            "reranked_hits": [hit.__dict__ for hit in debug.reranked_hits],
         }

@@ -13,6 +13,10 @@ class SearchResult:
     metadata: dict
     vector_score: float | None = None
     keyword_score: float | None = None
+    bm25_score: float | None = None
+    hybrid_score: float | None = None
+    rerank_score: float | None = None
+    final_rank: int | None = None
 
 
 class RetrievalProvider(ABC):

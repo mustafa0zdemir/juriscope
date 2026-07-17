@@ -1,4 +1,4 @@
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 
 from sqlalchemy.orm import Session
 
@@ -12,6 +12,7 @@ class RetrievalDebug:
     vector_hits: list[SearchResult]
     keyword_hits: list[SearchResult]
     merged_hits: list[SearchResult]
+    reranked_hits: list[SearchResult] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -71,6 +72,7 @@ class HybridRetriever:
                 vector_hits=vector_hits,
                 keyword_hits=keyword_hits,
                 merged_hits=merged_hits,
+                reranked_hits=[],
             ),
         )
 
@@ -90,6 +92,7 @@ class HybridRetriever:
                     **hit.__dict__,
                     "score": normalized_score,
                     "vector_score": hit.score,
+                    "hybrid_score": normalized_score,
                 }
             )
 
@@ -101,11 +104,17 @@ class HybridRetriever:
                         **hit.__dict__,
                         "score": normalized_score,
                         "keyword_score": hit.score,
+                        "bm25_score": hit.score,
                         "vector_score": existing.vector_score if existing else None,
+                        "hybrid_score": normalized_score,
                     }
                 )
             elif existing.keyword_score is None:
-                merged[hit.chunk_id] = replace(existing, keyword_score=hit.score)
+                merged[hit.chunk_id] = replace(
+                    existing,
+                    keyword_score=hit.score,
+                    bm25_score=hit.score,
+                )
 
         return sorted(merged.values(), key=lambda hit: hit.score, reverse=True)
 

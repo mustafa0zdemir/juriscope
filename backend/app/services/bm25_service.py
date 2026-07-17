@@ -46,6 +46,7 @@ class BM25Service:
                     text=chunk.text,
                     metadata=chunk.metadata_,
                     keyword_score=score,
+                    bm25_score=score,
                 )
             )
         return results

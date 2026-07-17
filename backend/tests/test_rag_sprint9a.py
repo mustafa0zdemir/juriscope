@@ -82,7 +82,12 @@ def test_retriever_service_preserves_top_k_and_authorizes_contracts() -> None:
         ),
     ):
         result = RetrieverService(fake_retriever).retrieve(
-            db=object(), question="Soru", user_id=7, contract_ids=[42], top_k=3
+            db=object(),
+            question="Soru",
+            user_id=7,
+            contract_ids=[42],
+            top_k=3,
+            rerank=False,
         )
 
     assert result == []

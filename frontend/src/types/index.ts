@@ -57,6 +57,7 @@ export interface ChatQueryRequest {
   contract_ids?: number[];
   top_k?: number;
   search_mode?: "vector" | "keyword" | "hybrid";
+  rerank?: boolean;
 }
 
 export interface StreamEvent {

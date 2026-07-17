@@ -13,6 +13,7 @@ from app.schemas.chat import (
     CitationResponse,
     PromptPreviewResponse,
 )
+from app.config.settings import settings
 from app.schemas.search import SearchResultItem
 from app.services.conversation_service import ConversationService
 from app.services.rag_service import RAGService
@@ -20,7 +21,7 @@ from app.services.rag_service import RAGService
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
 
-def _chunks_to_response(chunks) -> list[SearchResultItem]:
+def _chunks_to_response(chunks, include_debug: bool = False) -> list[SearchResultItem]:
     return [
         SearchResultItem(
             score=chunk.score,
@@ -30,8 +31,12 @@ def _chunks_to_response(chunks) -> list[SearchResultItem]:
             page_number=chunk.page_number,
             text=chunk.text,
             metadata=chunk.metadata,
-            vector_score=chunk.vector_score,
-            keyword_score=chunk.keyword_score,
+            vector_score=chunk.vector_score if include_debug else None,
+            keyword_score=chunk.keyword_score if include_debug else None,
+            bm25_score=chunk.bm25_score if include_debug else None,
+            hybrid_score=chunk.hybrid_score if include_debug else None,
+            rerank_score=chunk.rerank_score if include_debug else None,
+            final_rank=chunk.final_rank if include_debug else None,
         )
         for chunk in chunks
     ]
@@ -47,9 +52,10 @@ def _debug_to_response(debug):
     from app.schemas.search import SearchDebugResponse
 
     return SearchDebugResponse(
-        vector_hits=_chunks_to_response(debug.vector_hits),
-        keyword_hits=_chunks_to_response(debug.keyword_hits),
-        merged_hits=_chunks_to_response(debug.merged_hits),
+        vector_hits=_chunks_to_response(debug.vector_hits, include_debug=True),
+        keyword_hits=_chunks_to_response(debug.keyword_hits, include_debug=True),
+        merged_hits=_chunks_to_response(debug.merged_hits, include_debug=True),
+        reranked_hits=_chunks_to_response(debug.reranked_hits, include_debug=True),
     )
 
 
@@ -59,7 +65,7 @@ def _to_query_response(result, conversation_id: int | None = None) -> ChatQueryR
         question=result.question,
         answer=result.answer,
         citations=_citations_to_response(result.citations),
-        used_chunks=_chunks_to_response(result.used_chunks),
+        used_chunks=_chunks_to_response(result.used_chunks, include_debug=settings.enable_debug_search),
         model=result.model,
         latency_ms=result.latency_ms,
         debug=_debug_to_response(getattr(result, "retrieval_debug", None)),
@@ -69,7 +75,7 @@ def _to_query_response(result, conversation_id: int | None = None) -> ChatQueryR
 def _to_preview_response(result) -> PromptPreviewResponse:
     return PromptPreviewResponse(
         question=result.question,
-        retrieved_chunks=_chunks_to_response(result.retrieved_chunks),
+        retrieved_chunks=_chunks_to_response(result.retrieved_chunks, include_debug=settings.enable_debug_search),
         constructed_context=result.constructed_context,
         constructed_prompt=result.constructed_prompt,
         citations=_citations_to_response(result.citations),
