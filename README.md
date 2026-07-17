@@ -675,6 +675,25 @@ docker-compose exec backend alembic current
 
 ---
 
+## Kurumsal Frontend Mimarisi
+
+React ve TypeScript arayüzü, hukuk ekiplerinin yoğun çalışma akışlarına uygun
+beyaz zemin ve kırmızı vurgu renklerinden oluşan erişilebilir bir tasarım sistemi
+kullanır. Arayüzde gradient, glassmorphism ve gereksiz gölge efektleri yerine net
+hiyerarşi, güçlü kontrast ve tutarlı boşluklar tercih edilir.
+
+- `MainLayout`, sabit kurumsal sidebar, üst navigasyon ve kaydırılabilir ana içerik alanını yönetir.
+- `components/ui`, Button, Card, Badge, StatCard, EmptyState, Skeleton, SectionHeader ve ortak ikonları merkezi olarak sunar.
+- Dashboard; sözleşme metriklerini, hızlı işlemleri, son sözleşmeleri ve sistem durumunu tek ekranda toplar.
+- Chat; conversation sidebar, gerçek zamanlı cevap, Markdown/GFM, citation kartları, retry, copy ve generation durdurma akışlarını korur.
+- Sözleşme detay ekranı; özet, risk, açıklanabilirlik, evidence, compliance, clause, kaynak, confidence ve retrieval path sekmelerini birleştirir.
+- Legal Knowledge Base; admin yükleme, arama, tür filtresi, sayfalama, detay görüntüleme ve silme işlemlerini sunar.
+- API ve state orkestrasyonu componentlerden ayrılarak `hooks` ve `services` katmanlarında tutulur.
+
+Tüm ekranlar klavye odağı, okunabilir form etiketleri ve mobil/tablet kırılımları
+dikkate alınarak responsive hazırlanmıştır. Tema değişikliği yalnızca sunum
+katmanındadır; backend endpointleri, RAG akışı ve veri modelleri değiştirilmemiştir.
+
 ## Frontend (Lokal)
 
 ```bash
