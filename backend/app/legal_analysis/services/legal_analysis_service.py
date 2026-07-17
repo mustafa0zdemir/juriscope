@@ -1,4 +1,5 @@
 import logging
+from dataclasses import dataclass
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -21,8 +22,15 @@ from app.rag.multi_source_context_builder import MultiSourceContextBuilder
 from app.repositories.contract_repository import ContractRepository
 from app.services.llm_service import LLMService
 from app.services.multi_source_retriever_service import MultiSourceRetrieverService
+from app.retrieval.base import SearchResult
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class LegalAnalysisExecution:
+    analysis: LegalAnalysisResponse
+    retrieved_chunks: list[SearchResult]
 
 
 class LegalAnalysisService:
@@ -57,6 +65,15 @@ class LegalAnalysisService:
         contract_id: int,
         request: LegalAnalysisRequest,
     ) -> LegalAnalysisResponse:
+        return self.analyze_with_sources(db, user_id, contract_id, request).analysis
+
+    def analyze_with_sources(
+        self,
+        db: Session,
+        user_id: int,
+        contract_id: int,
+        request: LegalAnalysisRequest,
+    ) -> LegalAnalysisExecution:
         self._validate_contract(db=db, contract_id=contract_id, user_id=user_id)
 
         retrieval_result = self.retriever_service.retrieve_with_debug(
@@ -85,7 +102,7 @@ class LegalAnalysisService:
                 detail="Analiz modeli geçerli bir yanıt döndürmedi",
             ) from exc
 
-        return LegalAnalysisResponse(
+        analysis = LegalAnalysisResponse(
             analysis_type=request.analysis_type,
             summary=parsed.summary,
             risk_score=parsed.risk_score,
@@ -98,6 +115,7 @@ class LegalAnalysisService:
             recommendations=parsed.recommendations,
             citations=[AnalysisCitation.model_validate(citation.to_dict()) for citation in citations],
         )
+        return LegalAnalysisExecution(analysis=analysis, retrieved_chunks=retrieval_result.results)
 
     @staticmethod
     def _validate_contract(db: Session, contract_id: int, user_id: int) -> None:

@@ -12,6 +12,8 @@ from app.schemas.chunk import DocumentChunkListResponse, DocumentChunkDetailResp
 from app.schemas.contract import ContractListResponse, ContractResponse, ContractContentResponse, ContractStatusResponse
 from app.legal_analysis.schemas.analysis import LegalAnalysisRequest, LegalAnalysisResponse
 from app.legal_analysis.services.legal_analysis_service import LegalAnalysisService
+from app.legal_analysis.xai.explainable_analysis_service import ExplainableAnalysisService
+from app.legal_analysis.xai.schemas import ExplainableAnalysisResponse
 from app.services.contract_service import (
     delete_contract,
     download_contract,
@@ -28,6 +30,16 @@ from app.services.chunking_service import (
 )
 from app.services.embedding_service import trigger_embedding
 from app.storage.storage_service import StorageService
+from app.advanced_analysis.schemas import (
+    ClauseListResponse,
+    ComplianceReport,
+    ContractComparisonRequest,
+    ContractComparisonResponse,
+)
+from app.advanced_analysis.services.clause_detection_service import ClauseDetectionService
+from app.advanced_analysis.services.comparison_service import ContractComparisonService
+from app.advanced_analysis.services.compliance_service import ComplianceService
+from app.core.exceptions import BadRequestException
 
 router = APIRouter(prefix="/contracts", tags=["Contracts"])
 
@@ -55,6 +67,49 @@ def analyze_user_contract(
         contract_id=contract_id,
         request=request,
     )
+
+
+@router.post("/{contract_id}/analysis/explain", response_model=ExplainableAnalysisResponse)
+def explain_user_contract_analysis(
+    contract_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return ExplainableAnalysisService().explain(
+        db=db,
+        user_id=current_user.id,
+        contract_id=contract_id,
+    )
+
+
+@router.post("/compare", response_model=ContractComparisonResponse)
+def compare_user_contracts(
+    request: ContractComparisonRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    try:
+        return ContractComparisonService().compare(db=db, user_id=current_user.id, request=request)
+    except ValueError as exc:
+        raise BadRequestException(detail=str(exc)) from exc
+
+
+@router.post("/{contract_id}/compliance", response_model=ComplianceReport)
+def check_contract_compliance(
+    contract_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return ComplianceService().check(db=db, user_id=current_user.id, contract_id=contract_id)
+
+
+@router.get("/{contract_id}/clauses", response_model=ClauseListResponse)
+def get_detected_contract_clauses(
+    contract_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return ClauseDetectionService().detect(db=db, user_id=current_user.id, contract_id=contract_id)
 
 
 @router.get("/{contract_id}/download")
