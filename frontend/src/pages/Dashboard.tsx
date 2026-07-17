@@ -1,139 +1,75 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import api from "../services/api";
-import type { Contract, ContractListResponse } from "../types";
+import { useDashboard } from "../hooks/useDashboard";
+import { Badge, Button, Card, EmptyState, Icon, SectionHeader, Skeleton, StatCard } from "../components/ui";
 import "./Dashboard.css";
+
+function statusTone(status: string): "success" | "warning" | "danger" | "neutral" {
+  if (status === "embedded") return "success";
+  if (status === "failed") return "danger";
+  if (["uploaded", "parsing", "chunking", "embedding"].includes(status)) return "warning";
+  return "neutral";
+}
+
+function formatDate(value: string): string {
+  return new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value));
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [contracts, setContracts] = useState<Contract[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const loadContracts = async () => {
-      try {
-        const response = await api.get<ContractListResponse>("/contracts");
-        setContracts(response.data.items);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    void loadContracts();
-  }, []);
-
-  const readyContracts = contracts.filter((contract) => contract.status === "embedded").length;
-  const pendingContracts = contracts.filter((contract) => contract.status !== "embedded").length;
+  const dashboard = useDashboard();
+  const recentContracts = dashboard.contracts.slice(0, 5);
+  const recentConversations = dashboard.conversations.slice(0, 4);
 
   return (
     <div className="dashboard-page">
-      <div className="dashboard-header">
-        <h1>Dashboard</h1>
-        <p className="dashboard-welcome">
-          Hoş geldiniz, <strong>{user?.full_name}</strong>
-        </p>
-      </div>
+      <SectionHeader
+        eyebrow="Çalışma Alanı"
+        title={`Günaydın, ${user?.full_name?.split(" ")[0] ?? "Kullanıcı"}`}
+        description="Sözleşmelerinizi, hukuki analizlerinizi ve AI çalışmalarınızı tek merkezden yönetin."
+        action={<Link to="/upload"><Button icon="plus">Yeni sözleşme</Button></Link>}
+      />
+      {dashboard.error && <div className="dashboard-alert"><Icon name="alert" />{dashboard.error}</div>}
 
       <div className="dashboard-grid">
-        <div className="stat-card">
-          <div className="stat-icon contracts">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-            </svg>
-          </div>
-          <div className="stat-info">
-            <span className="stat-value">{contracts.length}</span>
-            <span className="stat-label">Toplam Sözleşme</span>
-          </div>
-        </div>
+        <StatCard icon="document" label="Toplam Sözleşme" value={dashboard.metrics.total} helper="Tüm çalışma alanı" />
+        <StatCard icon="check" label="İşlenen Sözleşmeler" value={dashboard.metrics.ready} helper="Analize hazır" tone="success" />
+        <StatCard icon="clock" label="Bekleyen Analizler" value={dashboard.metrics.pending} helper="Pipeline devam ediyor" tone="warning" />
+        <StatCard icon="alert" label="Riskli Sözleşmeler" value={dashboard.metrics.failed || "—"} helper="İnceleme gerektiren" tone="danger" />
+        <StatCard icon="shield" label="Compliance Ortalaması" value="—" helper="Raporlar sonrası hesaplanır" />
+      </div>
 
-        <div className="stat-card">
-          <div className="stat-icon analyzed">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-            </svg>
-          </div>
-          <div className="stat-info">
-            <span className="stat-value">{readyContracts}</span>
-            <span className="stat-label">Analize Hazır</span>
-          </div>
-        </div>
+      <div className="dashboard-layout">
+        <Card className="dashboard-primary-panel">
+          <div className="panel-heading"><div><span>SON ANALİZLER</span><h2>Sözleşmeler</h2></div><Link to="/upload">Tümünü yönet <Icon name="arrow" size={15} /></Link></div>
+          {dashboard.isLoading ? <Skeleton lines={5} /> : recentContracts.length ? (
+            <div className="contract-table" role="table" aria-label="Son sözleşmeler">
+              <div className="contract-table-head" role="row"><span>Dosya</span><span>Durum</span><span>Tarih</span><span /></div>
+              {recentContracts.map((contract) => (
+                <Link className="contract-table-row" key={contract.id} to={`/contracts/${contract.id}`} role="row">
+                  <span className="contract-name"><i><Icon name="document" size={17} /></i><span><strong>{contract.original_filename}</strong><small>{(contract.file_size / 1024).toFixed(1)} KB</small></span></span>
+                  <span><Badge tone={statusTone(contract.status)}>{contract.status}</Badge></span>
+                  <time>{formatDate(contract.updated_at)}</time><Icon name="chevron" size={16} />
+                </Link>
+              ))}
+            </div>
+          ) : <EmptyState title="Henüz sözleşme yok" description="İlk sözleşmenizi yükleyerek analiz çalışma alanını oluşturun." action={<Link to="/upload"><Button icon="upload">Sözleşme yükle</Button></Link>} />}
+        </Card>
 
-        <div className="stat-card">
-          <div className="stat-icon pending">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <polyline points="12 6 12 12 16 14" />
-            </svg>
-          </div>
-          <div className="stat-info">
-            <span className="stat-value">{pendingContracts}</span>
-            <span className="stat-label">İşleniyor</span>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon risk">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-              <line x1="12" y1="9" x2="12" y2="13" />
-              <line x1="12" y1="17" x2="12.01" y2="17" />
-            </svg>
-          </div>
-          <div className="stat-info">
-            <span className="stat-value">{readyContracts}</span>
-            <span className="stat-label">Analiz Edilebilir</span>
-          </div>
+        <div className="dashboard-side-column">
+          <Card className="quick-actions"><div className="panel-heading"><div><span>HIZLI İŞLEMLER</span><h2>Başlayın</h2></div></div><div className="quick-action-grid">
+            <Link to="/upload"><Icon name="upload" /><span><strong>Sözleşme yükle</strong><small>PDF veya DOCX</small></span></Link>
+            <Link to="/chat"><Icon name="sparkle" /><span><strong>AI'a danış</strong><small>Kaynaklı cevap</small></span></Link>
+            <Link to="/compare"><Icon name="compare" /><span><strong>Karşılaştır</strong><small>İki sürümü incele</small></span></Link>
+            {user?.is_admin && <Link to="/legal-kb"><Icon name="book" /><span><strong>Legal KB</strong><small>Kaynakları yönet</small></span></Link>}
+          </div></Card>
+          <Card className="recent-chats"><div className="panel-heading"><div><span>SON SOHBETLER</span><h2>AI Oturumları</h2></div><Link to="/chat">Aç</Link></div>
+            {recentConversations.length ? recentConversations.map((conversation) => <Link to="/chat" key={conversation.id}><i><Icon name="chat" size={16} /></i><span><strong>{conversation.title}</strong><small>{formatDate(conversation.updated_at)}</small></span></Link>) : <EmptyState icon="chat" title="Sohbet bulunmuyor" description="AI asistanıyla yeni bir oturum başlatın." />}
+          </Card>
         </div>
       </div>
 
-      {user?.is_admin && (
-        <Link className="legal-kb-banner" to="/legal-kb">
-          <div>
-            <span className="eyebrow">YÖNETİCİ</span>
-            <strong>Legal Knowledge Base</strong>
-            <p>Kanun, yönetmelik ve emsal kararları merkezi bilgi tabanında yönetin.</p>
-          </div>
-          <span>Yönetim ekranını aç →</span>
-        </Link>
-      )}
-
-      <Link className="analysis-platform-banner" to="/compare">
-        <div>
-          <span className="eyebrow">GELİŞMİŞ ANALİZ</span>
-          <strong>Sözleşme Karşılaştırma</strong>
-          <p>Madde, risk, hak ve yükümlülük değişimlerini iki sürüm arasında karşılaştırın.</p>
-        </div>
-        <span>Karşılaştırmayı aç →</span>
-      </Link>
-
-      <div className="dashboard-section">
-        <h2>Sözleşmeler</h2>
-        {!isLoading && contracts.length > 0 ? (
-          <div className="contract-list">
-            {contracts.map((contract) => (
-              <Link className="contract-list-item" key={contract.id} to={`/contracts/${contract.id}`}>
-                <div>
-                  <strong>{contract.original_filename}</strong>
-                  <span>{new Date(contract.uploaded_at).toLocaleDateString("tr-TR")}</span>
-                </div>
-                <span className={`dashboard-contract-status status-${contract.status}`}>{contract.status}</span>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <div className="empty-state">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-            <line x1="3" y1="9" x2="21" y2="9" />
-            <line x1="9" y1="21" x2="9" y2="9" />
-          </svg>
-          <p>Henüz bir aktivite bulunmuyor</p>
-          <span>Sözleşme yükleyerek başlayabilirsiniz</span>
-          </div>
-        )}
-      </div>
+      <Card className="recent-activity"><div className="panel-heading"><div><span>RECENT ACTIVITY</span><h2>Son hareketler</h2></div></div><div className="activity-list">{recentContracts.slice(0, 3).map((contract) => <div key={contract.id}><i><Icon name="activity" size={15} /></i><p><strong>{contract.original_filename}</strong> için işlem durumu <Badge tone={statusTone(contract.status)}>{contract.status}</Badge> olarak güncellendi.</p><time>{formatDate(contract.updated_at)}</time></div>)}</div></Card>
     </div>
   );
 }

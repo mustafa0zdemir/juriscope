@@ -1,20 +1,12 @@
-.main-layout {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.main-content {
-  flex: 1;
-  padding: 2rem;
-  max-width: 1200px;
-  width: 100%;
-  margin: 0 auto;
-}
-
-.layout-loading {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+.main-layout { min-height:100vh; }
+.layout-workspace { margin-left:var(--sidebar-width); min-height:100vh; }
+.top-navbar { align-items:center; background:#fff; border-bottom:1px solid var(--border); display:flex; height:var(--topbar-height); justify-content:space-between; padding:0 2rem; position:sticky; top:0; z-index:80; }
+.top-navbar > div { align-items:center; color:var(--text-secondary); display:flex; font-size:.78rem; gap:.75rem; }
+.topbar-product { color:var(--text-primary); font-weight:750; }.topbar-divider { background:var(--border); height:18px; width:1px; }
+.topbar-actions button { align-items:center; background:transparent; border:0; color:var(--text-secondary); cursor:pointer; display:flex; padding:.45rem; }
+.system-pill { align-items:center; border:1px solid var(--border); border-radius:999px; display:flex; font-size:.7rem; gap:.4rem; padding:.35rem .6rem; }.system-pill i { background:var(--success); border-radius:50%; height:6px; width:6px; }
+.topbar-avatar { align-items:center; background:#18181b; border-radius:50%; color:white; display:flex; font-size:.72rem; font-weight:700; height:32px; justify-content:center; width:32px; }
+.main-content { margin:0 auto; max-width:1480px; padding:2rem clamp(1.25rem,3vw,3rem) 3rem; width:100%; }
+.layout-loading { align-items:center; display:flex; justify-content:center; min-height:100vh; }
+@media (max-width:960px) { .layout-workspace { margin-left:82px; }.top-navbar { padding:0 1.25rem; } }
+@media (max-width:700px) { .layout-workspace { margin-left:0; }.top-navbar { height:56px; padding:0 1rem; }.top-navbar > div:first-child span:not(.topbar-product) { display:none; }.system-pill { display:none; }.main-content { padding:1.25rem 1rem 6rem; } }

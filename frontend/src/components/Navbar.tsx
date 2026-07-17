@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { Icon, type IconName } from "./ui/Icon";
 import "./Navbar.css";
 
 export default function Navbar() {
@@ -12,41 +13,27 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="navbar">
+    <aside className="navbar" aria-label="Ana navigasyon">
       <div className="navbar-brand">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-          <polyline points="14 2 14 8 20 8" />
-        </svg>
-        <span>Sözleşme Analizi</span>
+        <span className="brand-mark">L</span><span className="brand-copy"><strong>Lexora</strong><small>Legal Intelligence</small></span>
       </div>
 
       <div className="navbar-links">
-        <NavLink to="/dashboard" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-          Dashboard
-        </NavLink>
-        <NavLink to="/upload" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-          Yükle
-        </NavLink>
-        <NavLink to="/chat" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-          Sohbet
-        </NavLink>
-        <NavLink to="/compare" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-          Karşılaştır
-        </NavLink>
+        <span className="nav-section-label">Çalışma Alanı</span>
+        {([['/dashboard','activity','Genel Bakış'],['/upload','upload','Sözleşme Yükle'],['/chat','chat','AI Asistan'],['/compare','compare','Karşılaştırma']] as Array<[string,IconName,string]>).map(([to,icon,label]) => <NavLink key={to} to={to} className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}><Icon name={icon} /><span>{label}</span></NavLink>)}
         {user?.is_admin && (
           <NavLink to="/legal-kb" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-            Hukuk KB
+            <Icon name="book" /><span>Hukuk Bilgi Tabanı</span>
           </NavLink>
         )}
       </div>
 
       <div className="navbar-user">
-        <span className="user-name">{user?.full_name}</span>
+        <div className="user-avatar">{user?.full_name?.slice(0,1).toUpperCase() ?? "K"}</div><span className="user-name"><strong>{user?.full_name}</strong><small>{user?.is_admin ? "Yönetici" : "Hukuk Kullanıcısı"}</small></span>
         <button onClick={handleLogout} className="logout-button">
-          Çıkış
+          <Icon name="logout" /><span>Çıkış</span>
         </button>
       </div>
-    </nav>
+    </aside>
   );
 }
