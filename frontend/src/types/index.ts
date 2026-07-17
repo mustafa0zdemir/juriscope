@@ -22,6 +22,24 @@ export interface UploadResponse {
   message: string;
 }
 
+export interface Contract {
+  id: number;
+  user_id: number;
+  original_filename: string;
+  stored_filename: string;
+  storage_key: string;
+  mime_type: string;
+  file_size: number;
+  status: string;
+  uploaded_at: string;
+  updated_at: string;
+}
+
+export interface ContractListResponse {
+  items: Contract[];
+  total: number;
+}
+
 export interface Citation {
   contract_id: number;
   chunk_id: number;
@@ -63,4 +81,37 @@ export interface ChatQueryRequest {
 export interface StreamEvent {
   event: "start" | "token" | "citations" | "done" | "error";
   data: Record<string, unknown>;
+}
+
+export type RiskCategory = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+
+export interface AnalysisFinding {
+  title: string;
+  description: string;
+  citation: number | null;
+}
+
+export interface LegalRisk extends AnalysisFinding {
+  severity: RiskCategory;
+  reason: string;
+}
+
+export interface LegalRecommendation {
+  title: string;
+  description: string;
+  related_risk: string | null;
+}
+
+export interface LegalAnalysis {
+  analysis_type: "full";
+  summary: string;
+  risk_score: number;
+  risk_category: RiskCategory;
+  confidence: number;
+  risks: LegalRisk[];
+  missing_clauses: AnalysisFinding[];
+  ambiguous_clauses: AnalysisFinding[];
+  one_sided_clauses: AnalysisFinding[];
+  recommendations: LegalRecommendation[];
+  citations: Citation[];
 }

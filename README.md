@@ -146,6 +146,71 @@ karşılaştırması yapmak için `false` gönderilebilir; `RERANK_ENABLED=false
 ortam ayarı ise re-ranking katmanını uygulama genelinde kapatır ve modeli hiç
 yüklemez.
 
+### Legal Analysis Engine
+
+Legal Analysis Engine, sohbet yanıtından farklı olarak tek bir sözleşmeyi
+otomatik ve yapılandırılmış biçimde inceler. `LegalAnalysisService`, önce
+sözleşmenin kullanıcıya ait ve `embedded` durumda olduğunu doğrular; sonra
+mevcut Hybrid Search ve Cross Encoder re-ranking altyapısından yalnızca o
+sözleşmeye ait kaynakları alır.
+
+```
+Sözleşme doğrulama ve yetkilendirme
+    → Hybrid Search + Cross Encoder Re-ranking
+    → ContextBuilder
+    → AnalysisPromptBuilder
+    → Gemini (yalnızca JSON)
+    → AnalysisResponseParser
+    → Risk puanı, bulgular, öneriler ve kaynaklar
+```
+
+`AnalysisPromptBuilder`, hukuk uzmanı rolünü, objektif değerlendirmeyi, kaynak
+kullanım kurallarını, risk analizi ve sade Türkçe açıklama beklentisini merkezi
+olarak tanımlar. `AnalysisResponseParser`, model cevabının zorunlu JSON
+sözleşmesine uyduğunu doğrular. Model kaynak referanslarını üretse de API
+citations alanı yalnızca retrieval sonucundaki doğrulanmış chunk metadata'sından
+oluşturulur.
+
+Risk puanı `0-100` arasındadır: `0-24 LOW`, `25-49 MEDIUM`, `50-74 HIGH` ve
+`75-100 CRITICAL`. Analiz; riskli maddeler, eksik maddeler, belirsiz ifadeler,
+tek taraflı hükümler, iyileştirme önerileri ve sade bir Türkçe özeti döndürür.
+
+#### Analysis API
+
+```http
+POST /api/v1/contracts/{contract_id}/analyze
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "analysis_type": "full"
+}
+```
+
+Örnek yanıt:
+
+```json
+{
+  "analysis_type": "full",
+  "summary": "Sözleşmede fesih süresine ilişkin belirsizlik bulunmaktadır.",
+  "risk_score": 82,
+  "risk_category": "CRITICAL",
+  "confidence": 0.91,
+  "risks": [],
+  "missing_clauses": [],
+  "ambiguous_clauses": [],
+  "one_sided_clauses": [],
+  "recommendations": [],
+  "citations": []
+}
+```
+
+Frontend'de sözleşmeler Dashboard üzerinden açılır. `/contracts/:contractId`
+detay ekranındaki **Analiz Et** butonu isteği başlatır; sonuçlar Genel Özet,
+Riskler, Eksik Maddeler, Belirsiz Maddeler, Tek Taraflı Maddeler, Öneriler ve
+Kaynaklar sekmelerinde gösterilir. Bu endpoint streaming kullanmaz; mevcut chat
+streaming akışı değişmeden korunur.
+
 ### RAG Orchestrator (Sprint 9A)
 
 Sprint 9A, Retrieval katmanını henüz bir LLM çağrısı yapmadan üretime hazır bir
@@ -357,6 +422,7 @@ Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
 | GET | `/api/v1/contracts/{id}/embedding/status` | Embedding işlem durumunu getir |
 | GET | `/api/v1/contracts/{id}/download` | Dosyayı MinIO'dan indir |
 | DELETE | `/api/v1/contracts/{id}` | Sözleşmeyi ve MinIO dosyasını sil |
+| POST | `/api/v1/contracts/{id}/analyze` | Sözleşme için yapılandırılmış hukuki analiz üret |
 | POST | `/api/v1/search` | Vector, keyword veya hybrid sözleşme araması yap |
 | POST | `/api/v1/chat/query` | Hybrid retrieval context'ini Gemini ile cevaplar ve mesaja kaydeder |
 | POST | `/api/v1/chat/stream` | Hybrid retrieval sonrası Gemini cevabını SSE ile parça parça döndürür |

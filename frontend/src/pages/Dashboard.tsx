@@ -1,8 +1,29 @@
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import api from "../services/api";
+import type { Contract, ContractListResponse } from "../types";
 import "./Dashboard.css";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadContracts = async () => {
+      try {
+        const response = await api.get<ContractListResponse>("/contracts");
+        setContracts(response.data.items);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    void loadContracts();
+  }, []);
+
+  const readyContracts = contracts.filter((contract) => contract.status === "embedded").length;
+  const pendingContracts = contracts.filter((contract) => contract.status !== "embedded").length;
 
   return (
     <div className="dashboard-page">
@@ -22,7 +43,7 @@ export default function Dashboard() {
             </svg>
           </div>
           <div className="stat-info">
-            <span className="stat-value">0</span>
+            <span className="stat-value">{contracts.length}</span>
             <span className="stat-label">Toplam Sözleşme</span>
           </div>
         </div>
@@ -34,8 +55,8 @@ export default function Dashboard() {
             </svg>
           </div>
           <div className="stat-info">
-            <span className="stat-value">0</span>
-            <span className="stat-label">Analiz Edilen</span>
+            <span className="stat-value">{readyContracts}</span>
+            <span className="stat-label">Analize Hazır</span>
           </div>
         </div>
 
@@ -47,8 +68,8 @@ export default function Dashboard() {
             </svg>
           </div>
           <div className="stat-info">
-            <span className="stat-value">0</span>
-            <span className="stat-label">Bekleyen</span>
+            <span className="stat-value">{pendingContracts}</span>
+            <span className="stat-label">İşleniyor</span>
           </div>
         </div>
 
@@ -61,15 +82,28 @@ export default function Dashboard() {
             </svg>
           </div>
           <div className="stat-info">
-            <span className="stat-value">0</span>
-            <span className="stat-label">Riskli Madde</span>
+            <span className="stat-value">{readyContracts}</span>
+            <span className="stat-label">Analiz Edilebilir</span>
           </div>
         </div>
       </div>
 
       <div className="dashboard-section">
-        <h2>Son Aktiviteler</h2>
-        <div className="empty-state">
+        <h2>Sözleşmeler</h2>
+        {!isLoading && contracts.length > 0 ? (
+          <div className="contract-list">
+            {contracts.map((contract) => (
+              <Link className="contract-list-item" key={contract.id} to={`/contracts/${contract.id}`}>
+                <div>
+                  <strong>{contract.original_filename}</strong>
+                  <span>{new Date(contract.uploaded_at).toLocaleDateString("tr-TR")}</span>
+                </div>
+                <span className={`dashboard-contract-status status-${contract.status}`}>{contract.status}</span>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
             <line x1="3" y1="9" x2="21" y2="9" />
@@ -77,7 +111,8 @@ export default function Dashboard() {
           </svg>
           <p>Henüz bir aktivite bulunmuyor</p>
           <span>Sözleşme yükleyerek başlayabilirsiniz</span>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

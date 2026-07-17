@@ -5,6 +5,7 @@ import Dashboard from "../pages/Dashboard";
 import Upload from "../pages/Upload";
 import NotFound from "../pages/NotFound";
 import Chat from "../pages/Chat";
+import ContractDetail from "../pages/ContractDetail";
 import AuthGuard from "../components/AuthGuard";
 
 export const router = createBrowserRouter([
@@ -34,6 +35,10 @@ export const router = createBrowserRouter([
           {
             path: "chat",
             element: <Chat />,
+          },
+          {
+            path: "contracts/:contractId",
+            element: <ContractDetail />,
           },
         ],
       },

@@ -1,0 +1,280 @@
+.contract-detail-page {
+  animation: fadeIn 0.35s ease-out;
+}
+
+.back-link {
+  color: var(--text-secondary);
+  display: inline-block;
+  font-size: 0.875rem;
+  margin-bottom: 1.25rem;
+}
+
+.back-link:hover {
+  color: var(--primary);
+}
+
+.contract-detail-header,
+.risk-overview {
+  align-items: center;
+  display: flex;
+  gap: 1.5rem;
+  justify-content: space-between;
+}
+
+.contract-detail-header h1 {
+  font-size: 1.7rem;
+  margin: 0.2rem 0 0.65rem;
+  overflow-wrap: anywhere;
+}
+
+.eyebrow {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.contract-status,
+.severity {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.3rem 0.65rem;
+  text-transform: uppercase;
+}
+
+.status-embedded,
+.severity-low {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.status-failed,
+.severity-critical {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.status-uploaded,
+.status-parsing,
+.status-parsed,
+.status-chunking,
+.status-embedding,
+.severity-medium {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.severity-high {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.analyze-button {
+  background: var(--primary);
+  border: 0;
+  border-radius: var(--radius-md);
+  color: white;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0.8rem 1.1rem;
+  transition: opacity var(--transition), transform var(--transition);
+}
+
+.analyze-button:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.analyze-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.analysis-placeholder,
+.analysis-results,
+.analysis-notice,
+.analysis-error {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-top: 1.75rem;
+  padding: 1.5rem;
+}
+
+.analysis-placeholder h2 {
+  margin: 0 0 0.5rem;
+}
+
+.analysis-placeholder p,
+.analysis-notice,
+.analysis-empty,
+.summary-text {
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.analysis-notice {
+  background: var(--warning-bg);
+  border-color: transparent;
+  color: var(--warning);
+}
+
+.analysis-error {
+  background: var(--danger-bg);
+  border-color: transparent;
+  color: var(--danger);
+}
+
+.risk-overview {
+  border-bottom: 1px solid var(--border);
+  justify-content: flex-start;
+  padding-bottom: 1.5rem;
+}
+
+.risk-overview h2 {
+  font-size: 1.35rem;
+  margin: 0.25rem 0;
+}
+
+.risk-overview p:last-child {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.risk-score {
+  align-items: baseline;
+  border: 7px solid currentColor;
+  border-radius: 50%;
+  display: flex;
+  height: 106px;
+  justify-content: center;
+  width: 106px;
+}
+
+.risk-score span {
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.risk-score small {
+  font-size: 0.7rem;
+}
+
+.risk-low { color: var(--success); }
+.risk-medium { color: var(--warning); }
+.risk-high { color: #c2410c; }
+.risk-critical { color: var(--danger); }
+
+.analysis-tabs {
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 1.5rem;
+  overflow-x: auto;
+}
+
+.analysis-tabs button {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.75rem 0.65rem;
+  white-space: nowrap;
+}
+
+.analysis-tabs button.active {
+  border-bottom-color: var(--primary);
+  color: var(--primary);
+}
+
+.analysis-tab-content {
+  padding-top: 1.4rem;
+}
+
+.finding-list,
+.citation-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.finding-card,
+.risk-card,
+.citation-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+}
+
+.finding-card h3,
+.risk-card h3 {
+  font-size: 1rem;
+  margin: 0 0 0.45rem;
+}
+
+.finding-card p,
+.risk-card p {
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin: 0.3rem 0;
+}
+
+.finding-card span,
+.risk-card > span {
+  color: var(--text-muted);
+  display: inline-block;
+  font-size: 0.78rem;
+  margin-top: 0.6rem;
+}
+
+.risk-card-header {
+  align-items: center;
+  display: flex;
+  gap: 0.8rem;
+  justify-content: space-between;
+}
+
+.risk-card strong {
+  display: block;
+  font-size: 0.82rem;
+  margin-top: 0.8rem;
+}
+
+.citation-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 1rem;
+}
+
+.citation-card strong {
+  width: 100%;
+}
+
+.citation-card span {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.contract-loading {
+  color: var(--text-secondary);
+  padding: 3rem 0;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .contract-detail-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .analyze-button {
+    width: 100%;
+  }
+}
