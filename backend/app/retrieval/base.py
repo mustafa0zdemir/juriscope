@@ -11,6 +11,8 @@ class SearchResult:
     page_number: int | None
     text: str
     metadata: dict
+    vector_score: float | None = None
+    keyword_score: float | None = None
 
 
 class RetrievalProvider(ABC):

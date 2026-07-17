@@ -1,14 +1,23 @@
-import logging
-
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import ForbiddenException, NotFoundException
-from app.embeddings.sentence_transformer_provider import SentenceTransformerProvider
-from app.repositories.contract_repository import ContractRepository
-from app.retrieval.qdrant_retriever import QdrantRetriever
-from app.schemas.search import SearchRequest, SearchResponse, SearchResultItem
+from app.config.settings import settings
+from app.retrieval.base import SearchResult
+from app.schemas.search import SearchDebugResponse, SearchRequest, SearchResponse, SearchResultItem
+from app.services.retriever_service import RetrieverService
 
-logger = logging.getLogger(__name__)
+
+def _to_result_item(result: SearchResult) -> SearchResultItem:
+    return SearchResultItem(
+        score=result.score,
+        chunk_id=result.chunk_id,
+        contract_id=result.contract_id,
+        chunk_index=result.chunk_index,
+        page_number=result.page_number,
+        text=result.text,
+        metadata=result.metadata,
+        vector_score=result.vector_score,
+        keyword_score=result.keyword_score,
+    )
 
 
 def semantic_search(
@@ -16,62 +25,26 @@ def semantic_search(
     request: SearchRequest,
     user_id: int,
 ) -> SearchResponse:
-    # 1. Validate contract_id ownership if provided
-    contract_id_filter: int | None = None
-    if request.contract_id is not None:
-        repo = ContractRepository(db)
-        contract = repo.get_by_id(request.contract_id)
-        if not contract:
-            raise NotFoundException(detail="Sözleşme bulunamadı")
-        if contract.user_id != user_id:
-            raise ForbiddenException(detail="Bu sözleşmeye erişim yetkiniz yok")
-        contract_id_filter = request.contract_id
+    retrieval_result = RetrieverService().retrieve_with_debug(
+        db=db,
+        question=request.query,
+        user_id=user_id,
+        contract_ids=[request.contract_id] if request.contract_id is not None else None,
+        top_k=request.top_k,
+        search_mode=request.search_mode.value,
+    )
 
-    # 2. Get all user contract IDs for authorization filter
-    repo = ContractRepository(db)
-    user_contracts = repo.list_by_user(user_id=user_id, limit=10000)
-    contract_ids = [c.id for c in user_contracts]
-
-    if not contract_ids:
-        return SearchResponse(query=request.query, results=[], total=0)
-
-    # 3. Embed the query using the singleton model
-    try:
-        embed_provider = SentenceTransformerProvider.get_instance()
-        query_vector = embed_provider.embed_text(request.query)
-    except Exception as e:
-        logger.error(f"Sorgu embedding üretilemedi: {str(e)}")
-        raise
-
-    # 4. Perform semantic search via QdrantRetriever
-    try:
-        retriever = QdrantRetriever()
-        results = retriever.search(
-            query_vector=query_vector,
-            contract_ids=contract_ids,
-            top_k=request.top_k,
-            contract_id_filter=contract_id_filter,
+    debug = None
+    if settings.enable_debug_search:
+        debug = SearchDebugResponse(
+            vector_hits=[_to_result_item(hit) for hit in retrieval_result.debug.vector_hits],
+            keyword_hits=[_to_result_item(hit) for hit in retrieval_result.debug.keyword_hits],
+            merged_hits=[_to_result_item(hit) for hit in retrieval_result.debug.merged_hits],
         )
-    except Exception as e:
-        logger.error(f"Qdrant arama hatası: {str(e)}")
-        raise
-
-    # 5. Map to response schema
-    result_items = [
-        SearchResultItem(
-            score=r.score,
-            chunk_id=r.chunk_id,
-            contract_id=r.contract_id,
-            chunk_index=r.chunk_index,
-            page_number=r.page_number,
-            text=r.text,
-            metadata=r.metadata,
-        )
-        for r in results
-    ]
 
     return SearchResponse(
         query=request.query,
-        results=result_items,
-        total=len(result_items),
+        results=[_to_result_item(hit) for hit in retrieval_result.results],
+        total=len(retrieval_result.results),
+        debug=debug,
     )

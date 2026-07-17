@@ -47,5 +47,15 @@ class DocumentChunkRepository:
             .all()
         )
 
+    def list_by_contract_ids(self, contract_ids: list[int]) -> list[DocumentChunk]:
+        if not contract_ids:
+            return []
+        return (
+            self.db.query(DocumentChunk)
+            .filter(DocumentChunk.contract_id.in_(contract_ids))
+            .order_by(DocumentChunk.contract_id.asc(), DocumentChunk.chunk_index.asc())
+            .all()
+        )
+
     def get_by_id(self, chunk_id: int) -> DocumentChunk | None:
         return self.db.get(DocumentChunk, chunk_id)

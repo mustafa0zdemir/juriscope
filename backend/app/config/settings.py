@@ -43,6 +43,9 @@ class Settings(BaseSettings):
     top_p: float = 0.95
     gemini_timeout_seconds: float = 30.0
 
+    default_search_mode: str = "hybrid"
+    enable_debug_search: bool = False
+
     upload_dir: str = "uploads"
     max_upload_size_mb: int = 20
     allowed_extensions: list[str] = [".pdf", ".doc", ".docx"]

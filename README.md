@@ -49,20 +49,58 @@ contracts/
 * **DocumentChunk**: Her chunk veritabanında index, token_count ve metadata ile tutuluyor.
 * **Metadata**: Start/end karakter pozisyonları, sayfa, dil, strateji gibi zengin metadata (JSONB).
 
-### Retrieval Pipeline (Semantic Search)
+### Retrieval Pipeline (Hybrid Search)
 * **Mimari**: `RetrievalProvider` soyut sınıfı, Open/Closed prensibine uygun genişletilebilir yapı.
 * **QdrantRetriever**: Cosine similarity ile Qdrant üzerinde anlamsal arama.
+* **BM25Service**: Yetkili sözleşmelerin `DocumentChunk.text` alanlarından bellek içi Okapi BM25 indeksi oluşturur.
+* **HybridRetriever**: Vektör ve BM25 sonuçlarını normalize eder, aynı chunk'ları tekilleştirir ve Top-K'yı son aşamada uygular.
 * **Query Embedding**: Kullanıcı sorgusu aynı `BAAI/bge-m3` modeli ile embedding'e dönüştürülür.
-* **Güvenlik**: Her arama isteğinde Qdrant payload filtresi ile yalnızca kullanıcının kendi sözleşmeleri döner.
+* **Güvenlik**: Qdrant payload filtresi ve BM25 sorgusundaki sözleşme filtresi yalnızca kullanıcının kendi belgelerini kapsar.
 * **Top-K**: Varsayılan 5, API üzerinden 1-20 arası değiştirilebilir.
 
 ```
 POST /api/v1/search
     → JWT Doğrulama
-    → query embedding (SentenceTransformerProvider)
-    → Qdrant payload filter (contract_id in kullanıcının_sözleşmeleri)
-    → Cosine similarity search
+    → Yetkili sözleşmeleri doğrula
+    → Vector Search (Qdrant) + Keyword Search (BM25)
+    → Skor normalizasyonu, tekilleştirme ve Top-K
     → SearchResponse [score, chunk_id, text, metadata, ...]
+```
+
+#### Arama Modları
+
+`search_mode` alanı `/api/v1/search`, `/api/v1/chat/query`,
+`/api/v1/chat/stream` ve `/api/v1/chat/prompt-preview` isteklerinde opsiyoneldir.
+Varsayılan değer `hybrid`dir.
+
+| Mod | Davranış | Kullanım alanı |
+|-----|----------|----------------|
+| `vector` | Sadece Qdrant cosine similarity kullanır. | Anlamsal olarak benzer ifadeler |
+| `keyword` | Sadece BM25 kelime eşleşmesi kullanır. | Madde, kanun ve karar numaraları |
+| `hybrid` | İki kaynağı birleştirir, normalize eder ve tekrarları kaldırır. | Genel varsayılan arama |
+
+Vector Search anlam bakımından yakın metinleri bulurken BM25, sorgudaki kesin
+kelimeleri ve numaraları öne çıkarır. Bu birleşim özellikle hukuk metinlerindeki
+`4857`, `madde 17` veya karar numarası gibi ifadelerde retrieval doğruluğunu artırır.
+
+```env
+DEFAULT_SEARCH_MODE=hybrid
+ENABLE_DEBUG_SEARCH=false
+```
+
+`ENABLE_DEBUG_SEARCH=true` yapıldığında yanıtlar `vector_hits`, `keyword_hits`
+ve `merged_hits` alanlarını içerir. Bu alanlar normalde kapalıdır ve üretimde
+yalnızca teşhis amacıyla açılmalıdır.
+
+Örnek istek:
+
+```json
+{
+  "question": "4857 sayılı Kanun'un 17. maddesindeki bildirim süresi nedir?",
+  "contract_ids": [12],
+  "top_k": 5,
+  "search_mode": "hybrid"
+}
 ```
 
 ### RAG Orchestrator (Sprint 9A)
@@ -127,8 +165,10 @@ GEMINI_TIMEOUT_SECONDS=30
 ```
 
 `POST /api/v1/chat/query` artık `answer`, `citations`, `used_chunks`, `model`
-ve `latency_ms` döndürür. `POST /api/v1/chat/prompt-preview` ise LLM çağrısı
-yapmadan prompt önizlemesini korur. Gemini API erişilemediğinde `503`, API
+ve `latency_ms` döndürür. Arama akışı varsayılan olarak Hybrid Search kullanır;
+istekte `search_mode` ile `vector`, `keyword` veya `hybrid` seçilebilir.
+`POST /api/v1/chat/prompt-preview` ise LLM çağrısı yapmadan prompt önizlemesini
+korur. Gemini API erişilemediğinde `503`, API
 anahtarı eksik olduğunda `500` döndürülür. `GET /api/v1/health/llm` Gemini
 yapılandırmasının mevcut olup olmadığını gösterir; gerçek bir model çağrısı
 yapmaz.
@@ -274,9 +314,9 @@ Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
 | GET | `/api/v1/contracts/{id}/embedding/status` | Embedding işlem durumunu getir |
 | GET | `/api/v1/contracts/{id}/download` | Dosyayı MinIO'dan indir |
 | DELETE | `/api/v1/contracts/{id}` | Sözleşmeyi ve MinIO dosyasını sil |
-| POST | `/api/v1/search` | Vektör DB'de anlamsal arama (Semantic Search) yap |
-| POST | `/api/v1/chat/query` | Retrieval context'ini Gemini ile cevaplar ve mesaja kaydeder |
-| POST | `/api/v1/chat/stream` | Gemini cevabını SSE ile parça parça döndürür |
+| POST | `/api/v1/search` | Vector, keyword veya hybrid sözleşme araması yap |
+| POST | `/api/v1/chat/query` | Hybrid retrieval context'ini Gemini ile cevaplar ve mesaja kaydeder |
+| POST | `/api/v1/chat/stream` | Hybrid retrieval sonrası Gemini cevabını SSE ile parça parça döndürür |
 | POST | `/api/v1/chat/prompt-preview` | LLM çağrısı olmadan prompt önizlemesi |
 | GET | `/api/v1/conversations` | Kullanıcının tüm sohbetlerini listele |
 | POST | `/api/v1/conversations` | Yeni bir sohbet oluştur |

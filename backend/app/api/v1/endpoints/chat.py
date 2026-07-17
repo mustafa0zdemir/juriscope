@@ -30,6 +30,8 @@ def _chunks_to_response(chunks) -> list[SearchResultItem]:
             page_number=chunk.page_number,
             text=chunk.text,
             metadata=chunk.metadata,
+            vector_score=chunk.vector_score,
+            keyword_score=chunk.keyword_score,
         )
         for chunk in chunks
     ]
@@ -37,6 +39,18 @@ def _chunks_to_response(chunks) -> list[SearchResultItem]:
 
 def _citations_to_response(citations) -> list[CitationResponse]:
     return [CitationResponse.model_validate(citation.to_dict()) for citation in citations]
+
+
+def _debug_to_response(debug):
+    if debug is None:
+        return None
+    from app.schemas.search import SearchDebugResponse
+
+    return SearchDebugResponse(
+        vector_hits=_chunks_to_response(debug.vector_hits),
+        keyword_hits=_chunks_to_response(debug.keyword_hits),
+        merged_hits=_chunks_to_response(debug.merged_hits),
+    )
 
 
 def _to_query_response(result, conversation_id: int | None = None) -> ChatQueryResponse:
@@ -48,6 +62,7 @@ def _to_query_response(result, conversation_id: int | None = None) -> ChatQueryR
         used_chunks=_chunks_to_response(result.used_chunks),
         model=result.model,
         latency_ms=result.latency_ms,
+        debug=_debug_to_response(getattr(result, "retrieval_debug", None)),
     )
 
 
@@ -58,6 +73,7 @@ def _to_preview_response(result) -> PromptPreviewResponse:
         constructed_context=result.constructed_context,
         constructed_prompt=result.constructed_prompt,
         citations=_citations_to_response(result.citations),
+        debug=_debug_to_response(getattr(result, "retrieval_debug", None)),
     )
 
 

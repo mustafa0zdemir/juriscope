@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 
-from app.schemas.search import SearchResultItem
+from app.config.settings import settings
+from app.schemas.search import SearchDebugResponse, SearchMode, SearchResultItem
 
 
 class ChatQueryRequest(BaseModel):
@@ -8,6 +9,7 @@ class ChatQueryRequest(BaseModel):
     contract_ids: list[int] | None = Field(default=None, min_length=1)
     top_k: int = Field(default=5, ge=1, le=20)
     conversation_id: int | None = Field(default=None)
+    search_mode: SearchMode = Field(default=SearchMode(settings.default_search_mode))
 
 
 
@@ -25,6 +27,7 @@ class PromptPreviewResponse(BaseModel):
     constructed_context: str
     constructed_prompt: str
     citations: list[CitationResponse]
+    debug: SearchDebugResponse | None = None
 
 
 class ChatQueryResponse(BaseModel):
@@ -35,4 +38,4 @@ class ChatQueryResponse(BaseModel):
     used_chunks: list[SearchResultItem]
     model: str
     latency_ms: int
-
+    debug: SearchDebugResponse | None = None

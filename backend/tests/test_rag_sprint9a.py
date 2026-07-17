@@ -14,6 +14,7 @@ from app.rag.citation_builder import CitationBuilder
 from app.rag.context_builder import ContextBuilder
 from app.rag.prompt_builder import PromptBuilder
 from app.retrieval.base import SearchResult
+from app.retrieval.hybrid_retriever import HybridSearchResult, RetrievalDebug
 from app.schemas.chat import ChatQueryRequest
 from app.services.rag_service import RAGService
 from app.services.retriever_service import RetrieverService
@@ -64,7 +65,11 @@ def test_citation_builder_maps_required_fields() -> None:
 
 
 def test_retriever_service_preserves_top_k_and_authorizes_contracts() -> None:
-    fake_retriever = SimpleNamespace(search=lambda **kwargs: kwargs)
+    captured = {}
+    fake_retriever = SimpleNamespace(
+        search=lambda **kwargs: captured.update(kwargs)
+        or HybridSearchResult([], RetrievalDebug([], [], []))
+    )
     fake_contract = SimpleNamespace(id=42, user_id=7)
     fake_repository = SimpleNamespace(get_by_id=lambda contract_id: fake_contract)
     fake_embedding = SimpleNamespace(embed_text=lambda question: [0.1, 0.2])
@@ -80,8 +85,9 @@ def test_retriever_service_preserves_top_k_and_authorizes_contracts() -> None:
             db=object(), question="Soru", user_id=7, contract_ids=[42], top_k=3
         )
 
-    assert result["top_k"] == 3
-    assert result["contract_ids"] == [42]
+    assert result == []
+    assert captured["top_k"] == 3
+    assert captured["contract_ids"] == [42]
 
 
 def test_retriever_service_rejects_other_users_contract() -> None:

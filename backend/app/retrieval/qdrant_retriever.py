@@ -70,6 +70,7 @@ class QdrantRetriever(RetrievalProvider):
                         for k, v in payload.items()
                         if k not in ("chunk_id", "contract_id", "chunk_index", "page_number", "text")
                     },
+                    vector_score=hit.score,
                 )
             )
 

@@ -10,7 +10,9 @@ from sqlalchemy.orm import Session
 from app.rag.citation_builder import Citation, CitationBuilder
 from app.rag.context_builder import ContextBuilder
 from app.rag.prompt_builder import PromptBuilder
+from app.config.settings import settings
 from app.retrieval.base import SearchResult
+from app.retrieval.hybrid_retriever import RetrievalDebug
 from app.schemas.chat import ChatQueryRequest
 from app.services.llm_service import LLMService
 from app.services.retriever_service import RetrieverService
@@ -25,6 +27,7 @@ class RAGResult:
     constructed_context: str
     constructed_prompt: str
     citations: list[Citation]
+    retrieval_debug: RetrievalDebug | None = None
 
 
 @dataclass(frozen=True)
@@ -35,6 +38,7 @@ class RAGAnswerResult:
     used_chunks: list[SearchResult]
     model: str
     latency_ms: int
+    retrieval_debug: RetrievalDebug | None = None
 
 
 @dataclass(frozen=True)
@@ -59,12 +63,10 @@ class RAGService:
         self.llm_service = llm_service or LLMService()
 
     def prepare_query(self, db: Session, user_id: int, request: ChatQueryRequest) -> RAGResult:
-        chunks = self.retriever_service.retrieve(
+        chunks, retrieval_debug = self._retrieve_chunks(
             db=db,
-            question=request.question,
             user_id=user_id,
-            contract_ids=request.contract_ids,
-            top_k=request.top_k,
+            request=request,
         )
         context = self.context_builder.build(chunks)
         citations = self.citation_builder.build(chunks)
@@ -79,6 +81,7 @@ class RAGService:
             constructed_context=context,
             constructed_prompt=prompt,
             citations=citations,
+            retrieval_debug=retrieval_debug if settings.enable_debug_search else None,
         )
 
     def query(self, db: Session, user_id: int, request: ChatQueryRequest) -> RAGAnswerResult:
@@ -94,6 +97,7 @@ class RAGService:
             used_chunks=prepared.retrieved_chunks,
             model=self.llm_service.model_name,
             latency_ms=latency_ms,
+            retrieval_debug=prepared.retrieval_debug,
         )
 
     def stream_query(
@@ -161,6 +165,7 @@ class RAGService:
                     "conversation_id": conversation_id,
                     "model": self.llm_service.model_name,
                     "latency_ms": latency_ms,
+                    "debug": self._debug_to_dict(prepared.retrieval_debug),
                 },
             )
         except GeneratorExit:
@@ -178,3 +183,40 @@ class RAGService:
             detail = "Streaming sırasında beklenmeyen bir hata oluştu"
             code = "stream_error"
         return {"code": code, "message": detail}
+
+    def _retrieve_chunks(
+        self,
+        db: Session,
+        user_id: int,
+        request: ChatQueryRequest,
+    ) -> tuple[list[SearchResult], RetrievalDebug | None]:
+        retrieve_with_debug = getattr(self.retriever_service, "retrieve_with_debug", None)
+        if retrieve_with_debug is not None:
+            retrieval_result = retrieve_with_debug(
+                db=db,
+                question=request.question,
+                user_id=user_id,
+                contract_ids=request.contract_ids,
+                top_k=request.top_k,
+                search_mode=request.search_mode.value,
+            )
+            return retrieval_result.results, retrieval_result.debug
+
+        chunks = self.retriever_service.retrieve(
+            db=db,
+            question=request.question,
+            user_id=user_id,
+            contract_ids=request.contract_ids,
+            top_k=request.top_k,
+        )
+        return chunks, None
+
+    @staticmethod
+    def _debug_to_dict(debug: RetrievalDebug | None) -> dict | None:
+        if debug is None:
+            return None
+        return {
+            "vector_hits": [hit.__dict__ for hit in debug.vector_hits],
+            "keyword_hits": [hit.__dict__ for hit in debug.keyword_hits],
+            "merged_hits": [hit.__dict__ for hit in debug.merged_hits],
+        }
