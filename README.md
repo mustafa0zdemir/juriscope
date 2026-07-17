@@ -146,6 +146,121 @@ karşılaştırması yapmak için `false` gönderilebilir; `RERANK_ENABLED=false
 ortam ayarı ise re-ranking katmanını uygulama genelinde kapatır ve modeli hiç
 yüklemez.
 
+### Trustworthy RAG
+
+Trustworthy RAG katmanı, mevcut Multi-Source RAG akışının önüne ve arkasına
+güvenilirlik kontrolleri ekler. Retrieval, re-ranking, Gemini ve citation
+mimarileri değiştirilmez; `RAGGuardService` mevcut orkestrasyona dependency
+injection ile bağlanır.
+
+```text
+Question
+    → Multi-Source Hybrid Retrieval
+    → Retrieval Metrics
+    → Context Sufficiency + Prompt Security Guardrails
+    → [yeterliyse] PromptBuilder → Gemini
+    → Grounding Validation
+    → Citation Coverage
+    → Hallucination Risk
+    → Answer Confidence
+```
+
+#### Context Guardrails
+
+LLM çağrısından önce chunk sayısı, context uzunluğu, ortalama retrieval skoru,
+normalize edilmiş rerank skoru, kaynak çeşitliliği ve prompt injection kalıpları
+kontrol edilir. Context yeterli veya güvenli değilse Gemini çağrılmaz. Bu durum
+sistem hatası kabul edilmez ve HTTP `200` ile döner:
+
+```json
+{
+  "status": "insufficient_context",
+  "message": "Soruya güvenilir bir cevap üretmek için yeterli ve güvenli context bulunamadı.",
+  "confidence": 0,
+  "context_sufficient": false,
+  "guardrails": {},
+  "retrieval_metrics": {}
+}
+```
+
+Streaming akışında aynı durum `guardrails` SSE eventiyle bildirilir; yarım veya
+uydurulmuş assistant mesajı conversation tablosuna kaydedilmez.
+
+#### Prompt Guardrails
+
+`PromptBuilder` modele yalnızca verilen context'i kullanmasını, hukuki bilgi
+uydurmamasını, kaynak dışı yorum ve kaynaksız iddia üretmemesini, kanıt yoksa
+bunu söylemesini ve kanun/emsal karar çelişkisini açıklamasını zorunlu kılar.
+
+#### Grounding ve Citation Validation
+
+`GroundingValidator`; boş veya çok kısa cevap, citation kullanımı ve cevap ile
+context arasındaki kelime örtüşmesini değerlendirir. Sonuç `GROUNDED`,
+`PARTIALLY_GROUNDED` veya `LOW_GROUNDED` olarak döner.
+
+`CitationCoverageValidator`, cevap içindeki doğrulanabilir iddiaları ve geçerli
+`[Kaynak N]` referanslarını sayar. `total_claims`, `supported_claims`,
+`unsupported_claims` ve `coverage_percent` alanlarını üretir. Legal Analysis
+JSON çıktılarındaki `citation` alanları da aynı doğrulamaya dahildir.
+
+#### Hallucination Risk ve Confidence
+
+Hallucination riski `0-100` aralığında hesaplanır. Retrieval, rerank, citation
+coverage, kaynak çeşitliliği, context uzunluğu ve grounding confidence birlikte
+değerlendirilir. Risk seviyesi `LOW`, `MEDIUM` veya `HIGH` olur. Chat response
+içindeki geliştirilmiş `confidence` değeri hallucination riskinin tersidir.
+
+Chat ve Legal Analysis response'ları geriye dönük alanlarını koruyarak şu
+opsiyonel metadata'yı ekler:
+
+- `guardrails`
+- `grounding`
+- `citation_coverage`
+- `hallucination_risk`
+- `retrieval_metrics`
+- `context_sufficient`
+
+Retrieval metrics; `retrieved_chunks`, `reranked_chunks`, `used_chunks`,
+`average_similarity`, `average_rerank_score`, `context_characters`,
+`context_sources` ve `search_mode` değerlerini içerir.
+
+#### Yapılandırma
+
+```env
+ENABLE_RAG_GUARDRAILS=true
+ENABLE_GROUNDING_CHECK=true
+ENABLE_CITATION_VALIDATION=true
+ENABLE_HALLUCINATION_CHECK=true
+MIN_CONTEXT_CHUNKS=1
+MIN_CONTEXT_CHARACTERS=10
+MIN_RETRIEVAL_SCORE=0.2
+MIN_RERANK_SCORE=0.0
+ENABLE_DEBUG_CHAT=false
+```
+
+Eşikler deployment ortamına ve veri setine göre yükseltilebilir. Cross Encoder
+ham logitleri guardrail karşılaştırmasından önce `0-1` aralığına normalize edilir.
+
+#### RAG Health ve Debug
+
+```http
+GET /api/v1/health/rag
+```
+
+Endpoint retrieval, reranker, guardrails, LLM ve legal search bileşenlerinin
+durumunu; genel `ok` veya `degraded` sonucuyla birlikte döndürür.
+
+```http
+POST /api/v1/chat/debug
+Authorization: Bearer <token>
+```
+
+Debug endpoint retrieval, rerank, context, guardrails, prompt, grounding,
+citation coverage, hallucination risk ve LLM cevabını tek response içinde
+gösterir. Prompt ve context hassas veri içerebildiğinden varsayılan olarak
+kapalıdır; yalnızca geliştirme ortamında `ENABLE_DEBUG_CHAT=true` yapılmalıdır.
+Kapalı olduğunda endpoint `404` döndürür ve production yüzeyi açılmaz.
+
 ### Legal Analysis Engine
 
 Legal Analysis Engine, sohbet yanıtından farklı olarak tek bir sözleşmeyi
