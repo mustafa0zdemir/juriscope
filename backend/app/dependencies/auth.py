@@ -3,7 +3,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt.exceptions import InvalidTokenError
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import UnauthorizedException
+from app.core.exceptions import ForbiddenException, UnauthorizedException
 from app.core.security import decode_access_token
 from app.dependencies.database import get_db
 from app.schemas.auth import UserResponse
@@ -29,3 +29,9 @@ def get_current_user(
         raise UnauthorizedException(detail="User not found")
 
     return user
+
+
+def require_admin(current_user: UserResponse = Depends(get_current_user)) -> UserResponse:
+    if not current_user.is_admin:
+        raise ForbiddenException(detail="Bu işlem için yönetici yetkisi gerekiyor")
+    return current_user

@@ -1,0 +1,1 @@
+"""Legal belge ingestion akışı."""

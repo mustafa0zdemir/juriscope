@@ -2,7 +2,15 @@ import logging
 from typing import Any
 
 from qdrant_client import QdrantClient
-from qdrant_client.http.models import Distance, PointStruct, VectorParams
+from qdrant_client.http.models import (
+    Distance,
+    FieldCondition,
+    Filter,
+    FilterSelector,
+    MatchValue,
+    PointStruct,
+    VectorParams,
+)
 
 from app.config.settings import settings
 
@@ -10,9 +18,9 @@ logger = logging.getLogger(__name__)
 
 
 class QdrantService:
-    def __init__(self):
+    def __init__(self, collection_name: str | None = None):
         self.client = QdrantClient(url=settings.qdrant_url)
-        self.collection_name = settings.qdrant_collection
+        self.collection_name = collection_name or settings.qdrant_collection
 
     def ensure_collection_exists(self, vector_dimension: int):
         """
@@ -48,4 +56,14 @@ class QdrantService:
         self.client.upsert(
             collection_name=self.collection_name,
             points=qdrant_points
+        )
+
+    def delete_by_payload(self, key: str, value: int | str) -> None:
+        self.client.delete(
+            collection_name=self.collection_name,
+            points_selector=FilterSelector(
+                filter=Filter(
+                    must=[FieldCondition(key=key, match=MatchValue(value=value))]
+                )
+            ),
         )

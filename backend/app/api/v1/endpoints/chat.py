@@ -37,6 +37,8 @@ def _chunks_to_response(chunks, include_debug: bool = False) -> list[SearchResul
             hybrid_score=chunk.hybrid_score if include_debug else None,
             rerank_score=chunk.rerank_score if include_debug else None,
             final_rank=chunk.final_rank if include_debug else None,
+            source_type=chunk.source_type,
+            document_id=chunk.document_id,
         )
         for chunk in chunks
     ]

@@ -17,10 +17,10 @@ from app.legal_analysis.schemas.analysis import (
     LegalAnalysisResponse,
 )
 from app.rag.citation_builder import CitationBuilder
-from app.rag.context_builder import ContextBuilder
+from app.rag.multi_source_context_builder import MultiSourceContextBuilder
 from app.repositories.contract_repository import ContractRepository
 from app.services.llm_service import LLMService
-from app.services.retriever_service import RetrieverService
+from app.services.multi_source_retriever_service import MultiSourceRetrieverService
 
 logger = logging.getLogger(__name__)
 
@@ -36,15 +36,15 @@ class LegalAnalysisService:
 
     def __init__(
         self,
-        retriever_service: RetrieverService | None = None,
-        context_builder: ContextBuilder | None = None,
+        retriever_service: MultiSourceRetrieverService | None = None,
+        context_builder: MultiSourceContextBuilder | None = None,
         prompt_builder: AnalysisPromptBuilder | None = None,
         response_parser: AnalysisResponseParser | None = None,
         citation_builder: CitationBuilder | None = None,
         llm_service: LLMService | None = None,
     ) -> None:
-        self.retriever_service = retriever_service or RetrieverService()
-        self.context_builder = context_builder or ContextBuilder()
+        self.retriever_service = retriever_service or MultiSourceRetrieverService()
+        self.context_builder = context_builder or MultiSourceContextBuilder()
         self.prompt_builder = prompt_builder or AnalysisPromptBuilder()
         self.response_parser = response_parser or AnalysisResponseParser()
         self.citation_builder = citation_builder or CitationBuilder()

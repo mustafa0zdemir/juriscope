@@ -8,11 +8,21 @@ class LegalAnalysisRequest(BaseModel):
 
 
 class AnalysisCitation(BaseModel):
-    contract_id: int
+    contract_id: int | None = None
     chunk_id: int
-    chunk_index: int
-    page_number: int | None
+    chunk_index: int | None = None
+    page_number: int | None = None
     score: float
+    source_type: str = "contract"
+    document_type: str | None = None
+    title: str | None = None
+    official_number: str | None = None
+    article: str | None = None
+    court: str | None = None
+    decision_number: str | None = None
+    publication_date: str | None = None
+    page: int | None = None
+    document_id: int | None = None
 
 
 class RiskItem(BaseModel):

@@ -8,14 +8,15 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.rag.citation_builder import Citation, CitationBuilder
-from app.rag.context_builder import ContextBuilder
+from app.legal_kb.models.legal_citation import LegalCitation
+from app.rag.multi_source_context_builder import MultiSourceContextBuilder
 from app.rag.prompt_builder import PromptBuilder
 from app.config.settings import settings
 from app.retrieval.base import SearchResult
 from app.retrieval.hybrid_retriever import RetrievalDebug
 from app.schemas.chat import ChatQueryRequest
 from app.services.llm_service import LLMService
-from app.services.retriever_service import RetrieverService
+from app.services.multi_source_retriever_service import MultiSourceRetrieverService
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ class RAGResult:
     retrieved_chunks: list[SearchResult]
     constructed_context: str
     constructed_prompt: str
-    citations: list[Citation]
+    citations: list[Citation | LegalCitation]
     retrieval_debug: RetrievalDebug | None = None
 
 
@@ -34,7 +35,7 @@ class RAGResult:
 class RAGAnswerResult:
     question: str
     answer: str
-    citations: list[Citation]
+    citations: list[Citation | LegalCitation]
     used_chunks: list[SearchResult]
     model: str
     latency_ms: int
@@ -50,14 +51,14 @@ class RAGStreamEvent:
 class RAGService:
     def __init__(
         self,
-        retriever_service: RetrieverService | None = None,
-        context_builder: ContextBuilder | None = None,
+        retriever_service: MultiSourceRetrieverService | None = None,
+        context_builder: MultiSourceContextBuilder | None = None,
         prompt_builder: PromptBuilder | None = None,
         citation_builder: CitationBuilder | None = None,
         llm_service: LLMService | None = None,
     ) -> None:
-        self.retriever_service = retriever_service or RetrieverService()
-        self.context_builder = context_builder or ContextBuilder()
+        self.retriever_service = retriever_service or MultiSourceRetrieverService()
+        self.context_builder = context_builder or MultiSourceContextBuilder()
         self.prompt_builder = prompt_builder or PromptBuilder()
         self.citation_builder = citation_builder or CitationBuilder()
         self.llm_service = llm_service or LLMService()

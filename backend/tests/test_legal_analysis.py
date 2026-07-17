@@ -133,7 +133,7 @@ def test_legal_analysis_uses_authorized_retrieval_gemini_and_citations() -> None
     assert captured["search_mode"] == "hybrid"
     assert captured["rerank"] is True
     assert result.risk_category is RiskCategory.CRITICAL
-    assert [citation.model_dump() for citation in result.citations] == [
+    assert [citation.model_dump(exclude_defaults=True, exclude_none=True) for citation in result.citations] == [
         Citation(contract_id=42, chunk_id=10, chunk_index=0, page_number=3, score=0.91).to_dict()
     ]
 

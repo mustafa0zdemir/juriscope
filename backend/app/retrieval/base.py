@@ -6,7 +6,7 @@ from dataclasses import dataclass
 class SearchResult:
     score: float
     chunk_id: int
-    contract_id: int
+    contract_id: int | None
     chunk_index: int
     page_number: int | None
     text: str
@@ -17,6 +17,8 @@ class SearchResult:
     hybrid_score: float | None = None
     rerank_score: float | None = None
     final_rank: int | None = None
+    source_type: str = "contract"
+    document_id: int | None = None
 
 
 class RetrievalProvider(ABC):

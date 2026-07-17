@@ -34,6 +34,7 @@ class Settings(BaseSettings):
 
     qdrant_url: str = "http://qdrant:6333"
     qdrant_collection: str = "contracts"
+    legal_collection: str = "legal_documents"
     embedding_model: str = "BAAI/bge-m3"
 
     gemini_api_key: str = ""
@@ -50,6 +51,10 @@ class Settings(BaseSettings):
     rerank_input_limit: int = 20
     rerank_top_n: int = 5
     rerank_timeout_seconds: float = 30.0
+    enable_legal_search: bool = True
+    enable_multi_source_rag: bool = True
+    legal_top_k: int = 10
+    legal_rerank_top_n: int = 5
 
     upload_dir: str = "uploads"
     max_upload_size_mb: int = 20

@@ -21,6 +21,8 @@ def _to_result_item(result: SearchResult, include_debug: bool = False) -> Search
         hybrid_score=result.hybrid_score if include_debug else None,
         rerank_score=result.rerank_score if include_debug else None,
         final_rank=result.final_rank if include_debug else None,
+        source_type=result.source_type,
+        document_id=result.document_id,
     )
 
 

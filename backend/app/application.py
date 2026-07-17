@@ -22,6 +22,9 @@ async def lifespan(app: FastAPI):
     # Init Qdrant Collection
     qdrant = QdrantService()
     qdrant.ensure_collection_exists(embed_provider.get_dimension())
+    if settings.enable_legal_search:
+        legal_qdrant = QdrantService(settings.legal_collection)
+        legal_qdrant.ensure_collection_exists(embed_provider.get_dimension())
 
     yield
 

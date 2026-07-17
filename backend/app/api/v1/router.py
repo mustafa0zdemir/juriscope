@@ -7,6 +7,7 @@ from app.api.v1.endpoints.health import router as health_router
 from app.api.v1.endpoints.search import router as search_router
 from app.api.v1.endpoints.upload import router as upload_router
 from app.api.v1.endpoints.conversations import router as conversations_router
+from app.api.v1.endpoints.legal import router as legal_router
 
 api_v1_router = APIRouter()
 
@@ -17,3 +18,4 @@ api_v1_router.include_router(contracts_router)
 api_v1_router.include_router(search_router)
 api_v1_router.include_router(chat_router)
 api_v1_router.include_router(conversations_router)
+api_v1_router.include_router(legal_router)

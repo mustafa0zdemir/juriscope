@@ -22,6 +22,8 @@ import app.models.document_content  # noqa: F401
 import app.models.document_chunk  # noqa: F401
 import app.models.conversation  # noqa: F401
 import app.models.chat_message  # noqa: F401
+import app.legal_kb.models.legal_document  # noqa: F401
+import app.legal_kb.models.legal_chunk  # noqa: F401
 
 config.set_main_option("sqlalchemy.url", settings.database_url)
 

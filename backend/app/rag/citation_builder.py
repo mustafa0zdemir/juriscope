@@ -1,6 +1,7 @@
 from dataclasses import asdict, dataclass
 
 from app.retrieval.base import SearchResult
+from app.legal_kb.models.legal_citation import LegalCitation
 
 
 @dataclass(frozen=True)
@@ -26,5 +27,10 @@ class Citation:
 
 
 class CitationBuilder:
-    def build(self, chunks: list[SearchResult]) -> list[Citation]:
-        return [Citation.from_search_result(chunk) for chunk in chunks]
+    def build(self, chunks: list[SearchResult]) -> list[Citation | LegalCitation]:
+        return [
+            LegalCitation.from_search_result(chunk)
+            if chunk.source_type == "legal"
+            else Citation.from_search_result(chunk)
+            for chunk in chunks
+        ]
