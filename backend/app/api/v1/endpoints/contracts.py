@@ -40,6 +40,7 @@ from app.advanced_analysis.services.clause_detection_service import ClauseDetect
 from app.advanced_analysis.services.comparison_service import ContractComparisonService
 from app.advanced_analysis.services.compliance_service import ComplianceService
 from app.core.exceptions import BadRequestException
+from app.trustworthy_rag.schemas import InsufficientContextResponse
 
 router = APIRouter(prefix="/contracts", tags=["Contracts"])
 
@@ -54,7 +55,7 @@ def get_user_contracts(
     return list_contracts(db=db, user_id=current_user.id, skip=skip, limit=limit)
 
 
-@router.post("/{contract_id}/analyze", response_model=LegalAnalysisResponse)
+@router.post("/{contract_id}/analyze", response_model=LegalAnalysisResponse | InsufficientContextResponse)
 def analyze_user_contract(
     contract_id: int,
     request: LegalAnalysisRequest,
@@ -69,7 +70,10 @@ def analyze_user_contract(
     )
 
 
-@router.post("/{contract_id}/analysis/explain", response_model=ExplainableAnalysisResponse)
+@router.post(
+    "/{contract_id}/analysis/explain",
+    response_model=ExplainableAnalysisResponse | InsufficientContextResponse,
+)
 def explain_user_contract_analysis(
     contract_id: int,
     db: Session = Depends(get_db),

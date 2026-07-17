@@ -56,6 +56,16 @@ class Settings(BaseSettings):
     legal_top_k: int = 10
     legal_rerank_top_n: int = 5
 
+    enable_rag_guardrails: bool = True
+    enable_grounding_check: bool = True
+    enable_citation_validation: bool = True
+    enable_hallucination_check: bool = True
+    min_context_chunks: int = 1
+    min_context_characters: int = 10
+    min_retrieval_score: float = 0.2
+    min_rerank_score: float = 0.0
+    enable_debug_chat: bool = False
+
     upload_dir: str = "uploads"
     max_upload_size_mb: int = 20
     allowed_extensions: list[str] = [".pdf", ".doc", ".docx"]

@@ -6,6 +6,7 @@ from app.legal_analysis.xai.confidence_builder import ConfidenceBuilder
 from app.legal_analysis.xai.evidence_builder import EvidenceBuilder
 from app.legal_analysis.xai.retrieval_path_builder import RetrievalPathBuilder
 from app.legal_analysis.xai.schemas import ExplainableAnalysisResponse
+from app.trustworthy_rag.schemas import InsufficientContextResponse
 
 
 class ExplainableAnalysisService:
@@ -21,13 +22,20 @@ class ExplainableAnalysisService:
         self.evidence_builder = evidence_builder or EvidenceBuilder()
         self.retrieval_path_builder = retrieval_path_builder or RetrievalPathBuilder()
 
-    def explain(self, db: Session, user_id: int, contract_id: int) -> ExplainableAnalysisResponse:
+    def explain(
+        self,
+        db: Session,
+        user_id: int,
+        contract_id: int,
+    ) -> ExplainableAnalysisResponse | InsufficientContextResponse:
         execution = self.analysis_service.analyze_with_sources(
             db=db,
             user_id=user_id,
             contract_id=contract_id,
             request=LegalAnalysisRequest(),
         )
+        if isinstance(execution, InsufficientContextResponse):
+            return execution
         confidence_score, confidence_level = self.confidence_builder.build(
             execution.analysis.confidence,
             execution.retrieved_chunks,

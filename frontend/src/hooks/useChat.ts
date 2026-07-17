@@ -126,6 +126,22 @@ export function useChat(): UseChatResult {
       });
     }
 
+    if (event.event === "guardrails") {
+      const message = event.data.message;
+      setMessages((current) => {
+        const last = current[current.length - 1];
+        if (!last || last.role !== "assistant") return current;
+        return [
+          ...current.slice(0, -1),
+          {
+            ...last,
+            content: typeof message === "string" ? message : "Güvenilir cevap için yeterli context bulunamadı.",
+            isStreaming: false,
+          },
+        ];
+      });
+    }
+
     if (event.event === "done") {
       setMessages((current) => {
         const last = current[current.length - 1];

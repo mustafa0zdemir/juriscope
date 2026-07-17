@@ -90,7 +90,7 @@ export interface ChatQueryRequest {
 }
 
 export interface StreamEvent {
-  event: "start" | "token" | "citations" | "done" | "error";
+  event: "start" | "token" | "citations" | "guardrails" | "done" | "error";
   data: Record<string, unknown>;
 }
 

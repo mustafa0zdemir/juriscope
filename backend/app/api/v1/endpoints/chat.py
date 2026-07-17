@@ -1,6 +1,6 @@
 import json
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -17,6 +17,7 @@ from app.config.settings import settings
 from app.schemas.search import SearchResultItem
 from app.services.conversation_service import ConversationService
 from app.services.rag_service import RAGService
+from app.trustworthy_rag.schemas import InsufficientContextResponse, RAGDebugResponse
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
@@ -71,6 +72,13 @@ def _to_query_response(result, conversation_id: int | None = None) -> ChatQueryR
         model=result.model,
         latency_ms=result.latency_ms,
         debug=_debug_to_response(getattr(result, "retrieval_debug", None)),
+        guardrails=getattr(result, "guardrails", None),
+        grounding=getattr(result, "grounding", None),
+        citation_coverage=getattr(result, "citation_coverage", None),
+        hallucination_risk=getattr(result, "hallucination_risk", None),
+        retrieval_metrics=getattr(result, "retrieval_metrics", None),
+        context_sufficient=getattr(result, "context_sufficient", True),
+        confidence=getattr(result, "confidence", None),
     )
 
 
@@ -82,6 +90,9 @@ def _to_preview_response(result) -> PromptPreviewResponse:
         constructed_prompt=result.constructed_prompt,
         citations=_citations_to_response(result.citations),
         debug=_debug_to_response(getattr(result, "retrieval_debug", None)),
+        guardrails=getattr(result, "guardrails", None),
+        retrieval_metrics=getattr(result, "retrieval_metrics", None),
+        context_sufficient=getattr(result, "context_sufficient", True),
     )
 
 
@@ -110,7 +121,7 @@ def _get_or_create_conversation(db, user_id: int, conversation_id: int | None, q
     return conversation
 
 
-@router.post("/query", response_model=ChatQueryResponse)
+@router.post("/query", response_model=ChatQueryResponse | InsufficientContextResponse)
 def chat_query(
     request: ChatQueryRequest,
     db: Session = Depends(get_db),
@@ -122,6 +133,8 @@ def chat_query(
     conversation_service = ConversationService()
 
     result = RAGService().query(db=db, user_id=current_user.id, request=request)
+    if isinstance(result, InsufficientContextResponse):
+        return result
     
     conversation_service.add_message(
         db=db,
@@ -135,6 +148,17 @@ def chat_query(
     )
     
     return _to_query_response(result, conversation_id=conversation.id)
+
+
+@router.post("/debug", response_model=RAGDebugResponse)
+def chat_debug(
+    request: ChatQueryRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not settings.enable_debug_chat:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat debug endpoint kapalı")
+    return RAGService().debug_query(db=db, user_id=current_user.id, request=request)
 
 
 @router.post("/stream")

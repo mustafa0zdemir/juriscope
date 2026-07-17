@@ -9,3 +9,12 @@ class LLMHealthResponse(BaseModel):
     provider: str
     model: str
     configured: bool
+
+
+class RAGHealthResponse(BaseModel):
+    retrieval: str
+    reranker: str
+    guardrails: str
+    llm: str
+    legal_search: str
+    status: str

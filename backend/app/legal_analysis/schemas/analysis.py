@@ -1,6 +1,13 @@
 from pydantic import BaseModel, Field
 
 from app.legal_analysis.models.analysis import AnalysisType, RiskCategory, RiskSeverity
+from app.trustworthy_rag.schemas import (
+    CitationCoverage,
+    GroundingResult,
+    GuardrailReport,
+    HallucinationRisk,
+    RetrievalMetrics,
+)
 
 
 class LegalAnalysisRequest(BaseModel):
@@ -69,3 +76,9 @@ class LegalAnalysisResponse(BaseModel):
     one_sided_clauses: list[AnalysisFinding]
     recommendations: list[Recommendation]
     citations: list[AnalysisCitation]
+    guardrails: GuardrailReport | None = None
+    grounding: GroundingResult | None = None
+    citation_coverage: CitationCoverage | None = None
+    hallucination_risk: HallucinationRisk | None = None
+    retrieval_metrics: RetrievalMetrics | None = None
+    context_sufficient: bool = True

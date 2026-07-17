@@ -2,6 +2,13 @@ from pydantic import BaseModel, Field
 
 from app.config.settings import settings
 from app.schemas.search import SearchDebugResponse, SearchMode, SearchResultItem
+from app.trustworthy_rag.schemas import (
+    CitationCoverage,
+    GroundingResult,
+    GuardrailReport,
+    HallucinationRisk,
+    RetrievalMetrics,
+)
 
 
 class ChatQueryRequest(BaseModel):
@@ -39,6 +46,9 @@ class PromptPreviewResponse(BaseModel):
     constructed_prompt: str
     citations: list[CitationResponse]
     debug: SearchDebugResponse | None = None
+    guardrails: GuardrailReport | None = None
+    retrieval_metrics: RetrievalMetrics | None = None
+    context_sufficient: bool = True
 
 
 class ChatQueryResponse(BaseModel):
@@ -50,3 +60,10 @@ class ChatQueryResponse(BaseModel):
     model: str
     latency_ms: int
     debug: SearchDebugResponse | None = None
+    guardrails: GuardrailReport | None = None
+    grounding: GroundingResult | None = None
+    citation_coverage: CitationCoverage | None = None
+    hallucination_risk: HallucinationRisk | None = None
+    retrieval_metrics: RetrievalMetrics | None = None
+    context_sufficient: bool = True
+    confidence: int | None = Field(default=None, ge=0, le=100)

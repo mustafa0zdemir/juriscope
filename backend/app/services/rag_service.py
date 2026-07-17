@@ -17,6 +17,19 @@ from app.retrieval.hybrid_retriever import RetrievalDebug
 from app.schemas.chat import ChatQueryRequest
 from app.services.llm_service import LLMService
 from app.services.multi_source_retriever_service import MultiSourceRetrieverService
+from app.trustworthy_rag.schemas import (
+    CitationCoverage,
+    GroundingResult,
+    GuardrailReport,
+    HallucinationRisk,
+    InsufficientContextResponse,
+    RAGDebugResponse,
+    RetrievalMetrics,
+)
+from app.trustworthy_rag.services.citation_coverage_validator import CitationCoverageValidator
+from app.trustworthy_rag.services.grounding_validator import GroundingValidator
+from app.trustworthy_rag.services.hallucination_risk_service import HallucinationRiskService
+from app.trustworthy_rag.services.rag_guard_service import RAGGuardService
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +42,9 @@ class RAGResult:
     constructed_prompt: str
     citations: list[Citation | LegalCitation]
     retrieval_debug: RetrievalDebug | None = None
+    guardrails: GuardrailReport | None = None
+    retrieval_metrics: RetrievalMetrics | None = None
+    context_sufficient: bool = True
 
 
 @dataclass(frozen=True)
@@ -40,6 +56,13 @@ class RAGAnswerResult:
     model: str
     latency_ms: int
     retrieval_debug: RetrievalDebug | None = None
+    guardrails: GuardrailReport | None = None
+    grounding: GroundingResult | None = None
+    citation_coverage: CitationCoverage | None = None
+    hallucination_risk: HallucinationRisk | None = None
+    retrieval_metrics: RetrievalMetrics | None = None
+    context_sufficient: bool = True
+    confidence: int | None = None
 
 
 @dataclass(frozen=True)
@@ -56,12 +79,20 @@ class RAGService:
         prompt_builder: PromptBuilder | None = None,
         citation_builder: CitationBuilder | None = None,
         llm_service: LLMService | None = None,
+        guard_service: RAGGuardService | None = None,
+        grounding_validator: GroundingValidator | None = None,
+        citation_validator: CitationCoverageValidator | None = None,
+        hallucination_service: HallucinationRiskService | None = None,
     ) -> None:
         self.retriever_service = retriever_service or MultiSourceRetrieverService()
         self.context_builder = context_builder or MultiSourceContextBuilder()
         self.prompt_builder = prompt_builder or PromptBuilder()
         self.citation_builder = citation_builder or CitationBuilder()
         self.llm_service = llm_service or LLMService()
+        self.guard_service = guard_service or RAGGuardService()
+        self.grounding_validator = grounding_validator or GroundingValidator()
+        self.citation_validator = citation_validator or CitationCoverageValidator()
+        self.hallucination_service = hallucination_service or HallucinationRiskService()
 
     def prepare_query(self, db: Session, user_id: int, request: ChatQueryRequest) -> RAGResult:
         chunks, retrieval_debug = self._retrieve_chunks(
@@ -71,6 +102,12 @@ class RAGService:
         )
         context = self.context_builder.build(chunks)
         citations = self.citation_builder.build(chunks)
+        guardrails, retrieval_metrics = self.guard_service.evaluate(
+            question=request.question,
+            chunks=chunks,
+            context=context,
+            search_mode=request.search_mode.value,
+        )
         prompt = self.prompt_builder.build(
             question=request.question,
             context=context,
@@ -83,22 +120,67 @@ class RAGService:
             constructed_prompt=prompt,
             citations=citations,
             retrieval_debug=retrieval_debug if settings.enable_debug_search else None,
+            guardrails=guardrails,
+            retrieval_metrics=retrieval_metrics,
+            context_sufficient=guardrails.passed,
         )
 
-    def query(self, db: Session, user_id: int, request: ChatQueryRequest) -> RAGAnswerResult:
+    def query(
+        self,
+        db: Session,
+        user_id: int,
+        request: ChatQueryRequest,
+    ) -> RAGAnswerResult | InsufficientContextResponse:
         started_at = perf_counter()
         prepared = self.prepare_query(db=db, user_id=user_id, request=request)
+        if not prepared.context_sufficient:
+            return self._insufficient(prepared)
         answer = self.llm_service.generate(prepared.constructed_prompt)
-        citations = self.citation_builder.build(prepared.retrieved_chunks)
+        grounding, coverage, hallucination, confidence = self._validate_answer(answer, prepared)
         latency_ms = round((perf_counter() - started_at) * 1000)
         return RAGAnswerResult(
             question=prepared.question,
             answer=answer,
-            citations=citations,
+            citations=prepared.citations,
             used_chunks=prepared.retrieved_chunks,
             model=self.llm_service.model_name,
             latency_ms=latency_ms,
             retrieval_debug=prepared.retrieval_debug,
+            guardrails=prepared.guardrails,
+            grounding=grounding,
+            citation_coverage=coverage,
+            hallucination_risk=hallucination,
+            retrieval_metrics=prepared.retrieval_metrics,
+            context_sufficient=True,
+            confidence=confidence,
+        )
+
+    def debug_query(self, db: Session, user_id: int, request: ChatQueryRequest) -> RAGDebugResponse:
+        prepared = self.prepare_query(db=db, user_id=user_id, request=request)
+        answer: str | None = None
+        grounding = None
+        coverage = None
+        hallucination = None
+        if prepared.context_sufficient:
+            answer = self.llm_service.generate(prepared.constructed_prompt)
+            grounding, coverage, hallucination, _ = self._validate_answer(answer, prepared)
+        debug = self._debug_to_dict(prepared.retrieval_debug) or {
+            "used_chunks": [chunk.__dict__ for chunk in prepared.retrieved_chunks]
+        }
+        return RAGDebugResponse(
+            retrieval=debug,
+            rerank={
+                "enabled": request.rerank and settings.rerank_enabled,
+                "hits": prepared.retrieval_metrics.reranked_chunks if prepared.retrieval_metrics else 0,
+            },
+            context=prepared.constructed_context,
+            guardrails=prepared.guardrails,
+            prompt=prepared.constructed_prompt,
+            grounding=grounding,
+            citation_coverage=coverage,
+            hallucination_risk=hallucination,
+            llm_answer=answer,
+            context_sufficient=prepared.context_sufficient,
         )
 
     def stream_query(
@@ -112,6 +194,18 @@ class RAGService:
         try:
             prepared = self.prepare_query(db=db, user_id=user_id, request=request)
             yield RAGStreamEvent("start", {"conversation_id": conversation_id})
+            if not prepared.context_sufficient:
+                insufficient = self._insufficient(prepared)
+                yield RAGStreamEvent("guardrails", insufficient.model_dump(mode="json"))
+                yield RAGStreamEvent(
+                    "done",
+                    {
+                        "conversation_id": conversation_id,
+                        "status": insufficient.status,
+                        "context_sufficient": False,
+                    },
+                )
+                return
             answer_parts: list[str] = []
 
             try:
@@ -136,6 +230,7 @@ class RAGService:
 
             citations = self.citation_builder.build(prepared.retrieved_chunks)
             citation_data = [citation.to_dict() for citation in citations]
+            grounding, coverage, hallucination, confidence = self._validate_answer(answer, prepared)
             latency_ms = round((perf_counter() - started_at) * 1000)
 
             try:
@@ -167,6 +262,13 @@ class RAGService:
                     "model": self.llm_service.model_name,
                     "latency_ms": latency_ms,
                     "debug": self._debug_to_dict(prepared.retrieval_debug),
+                    "guardrails": prepared.guardrails.model_dump(mode="json") if prepared.guardrails else None,
+                    "grounding": grounding.model_dump(mode="json") if grounding else None,
+                    "citation_coverage": coverage.model_dump(mode="json") if coverage else None,
+                    "hallucination_risk": hallucination.model_dump(mode="json") if hallucination else None,
+                    "retrieval_metrics": prepared.retrieval_metrics.model_dump(mode="json") if prepared.retrieval_metrics else None,
+                    "context_sufficient": True,
+                    "confidence": confidence,
                 },
             )
         except GeneratorExit:
@@ -212,6 +314,48 @@ class RAGService:
             top_k=request.top_k,
         )
         return chunks, None
+
+    def _validate_answer(
+        self,
+        answer: str,
+        prepared: RAGResult,
+    ) -> tuple[GroundingResult | None, CitationCoverage | None, HallucinationRisk | None, int | None]:
+        coverage = (
+            self.citation_validator.validate(answer, len(prepared.citations))
+            if settings.enable_citation_validation
+            else None
+        )
+        grounding = (
+            self.grounding_validator.validate(
+                answer,
+                prepared.constructed_context,
+                len(prepared.citations),
+            )
+            if settings.enable_grounding_check
+            else None
+        )
+        hallucination = None
+        if (
+            settings.enable_hallucination_check
+            and coverage is not None
+            and grounding is not None
+            and prepared.retrieval_metrics is not None
+        ):
+            hallucination = self.hallucination_service.calculate(
+                prepared.retrieval_metrics,
+                coverage,
+                grounding,
+            )
+        confidence = 100 - hallucination.score if hallucination else grounding.score if grounding else None
+        return grounding, coverage, hallucination, confidence
+
+    @staticmethod
+    def _insufficient(prepared: RAGResult) -> InsufficientContextResponse:
+        return InsufficientContextResponse(
+            message="Soruya güvenilir bir cevap üretmek için yeterli ve güvenli context bulunamadı.",
+            guardrails=prepared.guardrails,
+            retrieval_metrics=prepared.retrieval_metrics,
+        )
 
     @staticmethod
     def _debug_to_dict(debug: RetrievalDebug | None) -> dict | None:
