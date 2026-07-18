@@ -15,7 +15,7 @@ export default function Navbar() {
   return (
     <aside className="navbar" aria-label="Ana navigasyon">
       <div className="navbar-brand">
-        <span className="brand-mark">L</span><span className="brand-copy"><strong>Lexora</strong><small>Legal Intelligence</small></span>
+        <span className="brand-mark">S</span><span className="brand-copy"><strong>Sözleşme Analizi</strong><small>AI Hukuk Platformu</small></span>
       </div>
 
       <div className="navbar-links">

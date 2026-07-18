@@ -11,7 +11,7 @@ export default function MainLayout() {
       <Navbar />
       <div className="layout-workspace">
         <header className="top-navbar">
-          <div><span className="topbar-product">Lexora</span><span className="topbar-divider" /><span>AI Sözleşme Platformu</span></div>
+          <div><span className="topbar-product">Sözleşme Analizi</span><span className="topbar-divider" /><span>AI Hukuk Platformu</span></div>
           <div className="topbar-actions"><span className="system-pill"><i /> Sistem hazır</span><button aria-label="Bildirimler"><Icon name="alert" /></button><div className="topbar-avatar">{user?.full_name?.slice(0,1).toUpperCase() ?? "K"}</div></div>
         </header>
         <main className="main-content"><Outlet /></main>
