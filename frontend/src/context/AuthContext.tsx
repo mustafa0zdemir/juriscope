@@ -48,10 +48,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchUser]);
 
   const login = async (credentials: LoginCredentials) => {
-    const response = await api.post<TokenResponse>("/auth/login", credentials);
-    const accessToken = response.data.access_token;
-    localStorage.setItem("access_token", accessToken);
-    setToken(accessToken);
+    try {
+      const response = await api.post<TokenResponse>("/auth/login", credentials);
+      const accessToken = response.data.access_token;
+      localStorage.setItem("access_token", accessToken);
+
+      const userResponse = await api.get<User>("/auth/me");
+      setToken(accessToken);
+      setUser(userResponse.data);
+    } catch (error) {
+      localStorage.removeItem("access_token");
+      setToken(null);
+      setUser(null);
+      throw error;
+    }
   };
 
   const logout = () => {
