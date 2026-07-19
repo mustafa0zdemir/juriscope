@@ -27,6 +27,9 @@ services:
       - MINIO_SECURE=false
     networks:
       - legal-network
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     depends_on:
       postgres:
         condition: service_healthy
