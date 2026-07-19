@@ -18,9 +18,9 @@ interface UseLegalAnalysisResult {
   isAnalyzing: boolean;
   error: string;
   analyze: () => Promise<void>;
-  explain: () => Promise<void>;
-  detectClauses: () => Promise<void>;
-  checkCompliance: () => Promise<void>;
+  explain: () => Promise<boolean>;
+  detectClauses: () => Promise<boolean>;
+  checkCompliance: () => Promise<boolean>;
 }
 
 export function useLegalAnalysis(contractId: number | null): UseLegalAnalysisResult {
@@ -76,22 +76,24 @@ export function useLegalAnalysis(contractId: number | null): UseLegalAnalysisRes
   }, [contractId, isAnalyzing]);
 
   const runRequest = useCallback(async <T,>(request: () => Promise<T>, apply: (data: T) => void) => {
-    if (!contractId || isAnalyzing) return;
+    if (!contractId || isAnalyzing) return false;
     setIsAnalyzing(true);
     setError("");
     try {
       apply(await request());
+      return true;
     } catch (requestError) {
       const detail = (requestError as { response?: { data?: { detail?: string } } })
         .response?.data?.detail;
       setError(detail ?? "Analiz işlemi tamamlanamadı");
+      return false;
     } finally {
       setIsAnalyzing(false);
     }
   }, [contractId, isAnalyzing]);
 
   const explain = useCallback(async () => {
-    await runRequest(
+    return runRequest(
       async () => (await api.post<ExplainableAnalysis>(`/contracts/${contractId}/analysis/explain`)).data,
       (data) => {
         setExplanation(data);
@@ -101,14 +103,14 @@ export function useLegalAnalysis(contractId: number | null): UseLegalAnalysisRes
   }, [contractId, runRequest]);
 
   const detectClauses = useCallback(async () => {
-    await runRequest(
+    return runRequest(
       async () => (await api.get<ClauseListResponse>(`/contracts/${contractId}/clauses`)).data,
       setClauses,
     );
   }, [contractId, runRequest]);
 
   const checkCompliance = useCallback(async () => {
-    await runRequest(
+    return runRequest(
       async () => (await api.post<ComplianceReport>(`/contracts/${contractId}/compliance`)).data,
       setCompliance,
     );

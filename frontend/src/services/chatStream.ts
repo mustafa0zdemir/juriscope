@@ -1,6 +1,5 @@
 import type { ChatQueryRequest, StreamEvent } from "../types";
-
-const API_BASE_URL = "http://localhost:8000/api/v1";
+import { API_BASE_URL } from "./api";
 
 export interface StreamHandlers {
   onEvent: (event: StreamEvent) => void;
@@ -53,6 +52,7 @@ export async function streamChat(
   while (true) {
     const { done, value } = await reader.read();
     buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
+    buffer = buffer.replaceAll("\r\n", "\n");
     const blocks = buffer.split("\n\n");
     buffer = blocks.pop() ?? "";
 

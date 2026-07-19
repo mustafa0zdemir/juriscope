@@ -10,7 +10,7 @@ export default function NotFound() {
         <h1 className="notfound-code">404</h1>
         <h2>Sayfa Bulunamadı</h2>
         <p>Aradığınız sayfa mevcut değil veya taşınmış olabilir.</p>
-        <Link to="/dashboard"><Button icon="arrow">Dashboard'a Dön</Button></Link>
+        <Link to="/dashboard"><Button icon="arrow">Genel Bakışa Dön</Button></Link>
       </div>
     </div>
   );

@@ -1,5 +1,4 @@
 import {
-  createContext,
   useState,
   useEffect,
   useCallback,
@@ -7,17 +6,7 @@ import {
 } from "react";
 import api from "../services/api";
 import type { User, LoginCredentials, TokenResponse } from "../types";
-
-interface AuthContextType {
-  user: User | null;
-  token: string | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (credentials: LoginCredentials) => Promise<void>;
-  logout: () => void;
-}
-
-export const AuthContext = createContext<AuthContextType | null>(null);
+import { AuthContext } from "./auth-context";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

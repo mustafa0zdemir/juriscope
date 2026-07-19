@@ -212,7 +212,7 @@ export interface ClauseListResponse {
   missing_types: ClauseType[];
 }
 
-export type ComplianceStatus = "COMPLIANT" | "PARTIAL" | "NON_COMPLIANT";
+export type ComplianceStatus = "COMPLIANT" | "PARTIAL" | "NON_COMPLIANT" | "NOT_APPLICABLE";
 
 export interface ComplianceFinding {
   law: string;

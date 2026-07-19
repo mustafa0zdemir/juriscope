@@ -14,6 +14,7 @@ import {
   RiskCategories,
 } from "../components/analysis/AdvancedPanels";
 import { Badge, Button, Icon, SectionHeader } from "../components/ui";
+import { contractStatusLabels, legalDocumentTypeLabels } from "../utils/labels";
 import "./ContractDetail.css";
 
 type AnalysisTab =
@@ -30,13 +31,13 @@ type AnalysisTab =
 const tabs: Array<{ id: AnalysisTab; label: string }> = [
   { id: "summary", label: "Genel Özet" },
   { id: "risks", label: "Riskler" },
-  { id: "explain", label: "Explain" },
-  { id: "evidence", label: "Evidence" },
-  { id: "compliance", label: "Compliance" },
-  { id: "clauses", label: "Clause Explorer" },
-  { id: "citations", label: "Sources" },
-  { id: "confidence", label: "Confidence" },
-  { id: "retrieval-path", label: "Retrieval Path" },
+  { id: "explain", label: "Analiz Gerekçesi" },
+  { id: "evidence", label: "Hukuki Dayanaklar" },
+  { id: "compliance", label: "Mevzuat Uyumu" },
+  { id: "clauses", label: "Madde İncelemesi" },
+  { id: "citations", label: "Kaynaklar" },
+  { id: "confidence", label: "Güven Düzeyi" },
+  { id: "retrieval-path", label: "Kaynak Erişim Süreci" },
 ];
 
 function riskLabel(category: RiskCategory): string {
@@ -133,15 +134,15 @@ export default function ContractDetail() {
 
   return (
     <div className="contract-detail-page">
-      <Link className="back-link" to="/dashboard">← Dashboard'a dön</Link>
-      <SectionHeader eyebrow="Sözleşme Detayı" title={contract.original_filename} description="Belge bilgileri, AI analizi, hukuki kanıtlar ve compliance sonuçları." action={<div className="analysis-actions"><Button disabled={!isReady || isAnalyzing} icon="sparkle" onClick={() => void analyze()}>{isAnalyzing ? "İşleniyor..." : "Analiz Et"}</Button><Button variant="secondary" disabled={!isReady || isAnalyzing} icon="shield" onClick={() => void explain().then(() => setActiveTab("explain"))}>Explain</Button><Button variant="secondary" disabled={!isReady || isAnalyzing} icon="search" onClick={() => void detectClauses().then(() => setActiveTab("clauses"))}>Maddeleri Tara</Button><Button variant="secondary" disabled={!isReady || isAnalyzing} icon="check" onClick={() => void checkCompliance().then(() => setActiveTab("compliance"))}>Compliance</Button></div>} />
+      <Link className="back-link" to="/dashboard">← Genel bakışa dön</Link>
+      <SectionHeader eyebrow="Sözleşme Detayı" title={contract.original_filename} description="Belge bilgileri, yapay zekâ destekli hukuki analiz, dayanaklar ve mevzuat uyumu sonuçları." action={<div className="analysis-actions"><Button disabled={!isReady || isAnalyzing} icon="sparkle" onClick={() => void analyze()}>{isAnalyzing ? "Hukuki analiz yapılıyor..." : "Hukuki Analizi Başlat"}</Button><Button variant="secondary" disabled={!isReady || isAnalyzing} icon="shield" onClick={() => void explain().then((succeeded) => succeeded && setActiveTab("explain"))}>Gerekçeli Analiz</Button><Button variant="secondary" disabled={!isReady || isAnalyzing} icon="search" onClick={() => void detectClauses().then((succeeded) => succeeded && setActiveTab("clauses"))}>Maddeleri İncele</Button><Button variant="secondary" disabled={!isReady || isAnalyzing} icon="check" onClick={() => void checkCompliance().then((succeeded) => succeeded && setActiveTab("compliance"))}>Mevzuat Uyumu</Button></div>} />
 
       <section className="contract-meta-grid" aria-label="Sözleşme bilgileri">
         <div><Icon name="document" /><span>Dosya Bilgisi</span><strong>{contract.mime_type.split("/").at(-1)?.toUpperCase()}</strong></div>
-        <div><Icon name="clock" /><span>Upload Tarihi</span><strong>{new Date(contract.uploaded_at).toLocaleDateString("tr-TR")}</strong></div>
-        <div><Icon name="activity" /><span>Status</span><Badge tone={isReady ? "success" : "warning"}>{contract.status}</Badge></div>
-        <div><Icon name="check" /><span>Embedding</span><strong>{isReady ? "Tamamlandı" : "Bekliyor"}</strong></div>
-        <div><Icon name="shield" /><span>Compliance</span><strong>{compliance ? `${compliance.compliance_score}/100` : "—"}</strong></div>
+        <div><Icon name="clock" /><span>Yükleme Tarihi</span><strong>{new Date(contract.uploaded_at).toLocaleDateString("tr-TR")}</strong></div>
+        <div><Icon name="activity" /><span>Belge Durumu</span><Badge tone={isReady ? "success" : "warning"}>{contractStatusLabels[contract.status] ?? contract.status}</Badge></div>
+        <div><Icon name="check" /><span>Vektör Dizinleme</span><strong>{isReady ? "Tamamlandı" : "Bekliyor"}</strong></div>
+        <div><Icon name="shield" /><span>Mevzuat Uyumu</span><strong>{compliance ? `${compliance.compliance_score}/100` : "—"}</strong></div>
         <div><Icon name="alert" /><span>Risk</span><strong>{analysis ? `${analysis.risk_score}/100` : "—"}</strong></div>
         <div><Icon name="sparkle" /><span>Analiz Durumu</span><strong>{analysis ? "Tamamlandı" : "Bekliyor"}</strong></div>
         <div><Icon name="download" /><span>Dosya Boyutu</span><strong>{(contract.file_size / 1024).toFixed(1)} KB</strong></div>
@@ -193,7 +194,7 @@ export default function ContractDetail() {
                     {citation.source_type === "legal" ? (
                       <>
                         <span>{citation.title ?? "Hukuki kaynak"}</span>
-                        <span>{citation.court ?? citation.document_type}</span>
+                        <span>{citation.court ?? (citation.document_type ? legalDocumentTypeLabels[citation.document_type] : "Hukuki kaynak")}</span>
                         <span>{citation.official_number ?? citation.decision_number ?? "Numara belirtilmemiş"}</span>
                       </>
                     ) : (
@@ -201,7 +202,7 @@ export default function ContractDetail() {
                     )}
                     <span>Sayfa {citation.page ?? citation.page_number ?? "belirtilmemiş"}</span>
                     <span>Skor {citation.score.toFixed(2)}</span>
-                    <span>Rerank {citation.rerank_score?.toFixed(2) ?? "—"}</span>
+                    <span>Yeniden sıralama {citation.rerank_score?.toFixed(2) ?? "—"}</span>
                   </article>
                 ))}
               </div>
@@ -211,19 +212,19 @@ export default function ContractDetail() {
               : <p className="analysis-empty">Açıklama için “Açıklanabilir Analiz” işlemini başlatın.</p>)}
             {activeTab === "evidence" && (explanation
               ? <EvidencePanel explanation={explanation} />
-              : <p className="analysis-empty">Evidence kayıtları henüz oluşturulmadı.</p>)}
+              : <p className="analysis-empty">Hukuki dayanaklar henüz oluşturulmadı.</p>)}
             {activeTab === "confidence" && (explanation
               ? <ConfidencePanel explanation={explanation} />
               : <p className="analysis-empty">Güven puanı için açıklanabilir analizi başlatın.</p>)}
             {activeTab === "retrieval-path" && (explanation
               ? <RetrievalPathPanel explanation={explanation} />
-              : <p className="analysis-empty">Retrieval zinciri henüz oluşturulmadı.</p>)}
+              : <p className="analysis-empty">Kaynak erişim süreci henüz oluşturulmadı.</p>)}
             {activeTab === "clauses" && (clauses
               ? <ClauseExplorer result={clauses} />
-              : <p className="analysis-empty">Clause Explorer için “Maddeleri Tara” işlemini başlatın.</p>)}
+              : <p className="analysis-empty">Madde incelemesi için “Maddeleri İncele” işlemini başlatın.</p>)}
             {activeTab === "compliance" && (compliance
               ? <><CompliancePanel report={compliance} /><div className="risk-category-section"><h3>Risk Kategorileri</h3><RiskCategories tags={compliance.risk_tags} /></div></>
-              : <p className="analysis-empty">Compliance raporu için uyumluluk denetimini başlatın.</p>)}
+              : <p className="analysis-empty">Mevzuat uyumu raporu için denetimi başlatın.</p>)}
           </div>
         </section>
       )}

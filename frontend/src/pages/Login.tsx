@@ -31,7 +31,7 @@ export default function Login() {
     <div className="login-page">
       <section className="login-brand-panel">
         <div className="login-brand"><span>S</span><strong>Sözleşme Analizi Sistemi</strong></div>
-        <div className="login-value"><p>AI DESTEKLİ HUKUK PLATFORMU</p><h1>Hukuki çalışmaları<br />daha güvenilir hale getirin.</h1><span>Kaynaklandırılmış AI analizi, sözleşme karşılaştırma ve merkezi hukuk bilgi tabanı tek çalışma alanında.</span></div>
+        <div className="login-value"><p>YAPAY ZEKÂ DESTEKLİ HUKUK PLATFORMU</p><h1>Hukuki çalışmaları<br />daha güvenilir hale getirin.</h1><span>Kaynaklandırılmış hukuki analiz, sözleşme karşılaştırma ve merkezi hukuk bilgi tabanı tek çalışma alanında.</span></div>
         <ul><li><Icon name="shield" />Trustworthy RAG ve doğrulanmış kaynaklar</li><li><Icon name="activity" />Açıklanabilir risk ve compliance analizi</li><li><Icon name="book" />Merkezi mevzuat ve emsal karar altyapısı</li></ul>
         <small>© 2026 Sözleşme Analizi Sistemi</small>
       </section>

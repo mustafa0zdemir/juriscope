@@ -13,9 +13,12 @@ export function useContractUpload() {
     try {
       const response = await api.post<UploadResponse>("/upload", formData, { headers: { "Content-Type": "multipart/form-data" } });
       setResult(response.data);
-    } catch { setError("Dosya yüklenirken bir hata oluştu."); }
+    } catch (requestError) {
+      const detail = (requestError as { response?: { data?: { detail?: string } } }).response?.data?.detail;
+      setError(detail ?? "Dosya yüklenirken bir hata oluştu.");
+    }
     finally { setIsUploading(false); }
   }, []);
 
-  return { upload, isUploading, result, error };
+  return { upload, isUploading, result, error, setValidationError: setError };
 }

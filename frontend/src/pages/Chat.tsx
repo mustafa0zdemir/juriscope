@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import ReactMarkdown from "react-markdown";
+import { useSearchParams } from "react-router-dom";
 import remarkGfm from "remark-gfm";
 import { useChat } from "../hooks/useChat";
 import type { ChatMessage, Citation } from "../types";
 import { Button, Icon } from "../components/ui";
+import { legalDocumentTypeLabels } from "../utils/labels";
 import "./Chat.css";
 
 function formatDate(value: string): string {
@@ -24,13 +26,13 @@ function CitationCard({ citation }: { citation: Citation }) {
         {isLegal ? citation.title ?? "Hukuki kaynak" : `Sözleşme #${citation.contract_id}`}
       </div>
       <div className="citation-card-meta">
-        {isLegal && <span>{citation.document_type}</span>}
+        {isLegal && citation.document_type && <span>{legalDocumentTypeLabels[citation.document_type]}</span>}
         {isLegal && citation.official_number && <span>No: {citation.official_number}</span>}
         {isLegal && citation.article && <span>Madde {citation.article}</span>}
         <span>Sayfa {citation.page ?? citation.page_number ?? "—"}</span>
-        {!isLegal && <span>Chunk {citation.chunk_index}</span>}
+        {!isLegal && <span>Metin bölümü {citation.chunk_index}</span>}
         <span>Benzerlik {(citation.score * 100).toFixed(1)}%</span>
-        <span>Rerank {citation.rerank_score?.toFixed(2) ?? "—"}</span>
+        <span>Yeniden sıralama {citation.rerank_score?.toFixed(2) ?? "—"}</span>
       </div>
       </div>
     </div>
@@ -99,6 +101,8 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 }
 
 export default function Chat() {
+  const [searchParams] = useSearchParams();
+  const requestedConversation = Number(searchParams.get("conversation"));
   const {
     conversations,
     messages,
@@ -112,7 +116,7 @@ export default function Chat() {
     sendMessage,
     retryLastMessage,
     stopGeneration,
-  } = useChat();
+  } = useChat(Number.isInteger(requestedConversation) && requestedConversation > 0 ? requestedConversation : null);
   const [question, setQuestion] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -173,7 +177,11 @@ export default function Chat() {
                   type="button"
                   className="conversation-delete"
                   aria-label="Sohbeti sil"
-                  onClick={() => void deleteConversation(conversation.id)}
+                  onClick={() => {
+                    if (window.confirm("Bu sohbeti ve tüm mesajlarını silmek istediğinize emin misiniz?")) {
+                      void deleteConversation(conversation.id);
+                    }
+                  }}
                 >
                   <Icon name="trash" size={15} />
                 </button>
@@ -186,7 +194,7 @@ export default function Chat() {
       <main className="chat-main">
         <header className="chat-header">
           <div>
-            <span className="eyebrow">RAG ANALİZİ</span>
+            <span className="eyebrow">KAYNAKLANDIRILMIŞ HUKUKİ ANALİZ</span>
             <h2>{activeConversationId ? conversations.find((item) => item.id === activeConversationId)?.title ?? "Sohbet" : "Yeni sözleşme sohbeti"}</h2>
           </div>
           <span className="connection-status"><i /> Gemini · Güvenli RAG</span>

@@ -1,4 +1,12 @@
 import type { ClauseListResponse, ComplianceReport, RiskTag } from "../../types";
+import { clauseTypeLabels, riskTagLabels } from "../../utils/labels";
+
+const complianceLabels = {
+  COMPLIANT: "Uygun",
+  PARTIAL: "Kısmen Uygun",
+  NON_COMPLIANT: "Uygun Değil",
+  NOT_APPLICABLE: "Kapsam Dışı",
+} as const;
 
 export function ClauseExplorer({ result }: { result: ClauseListResponse }) {
   return (
@@ -16,9 +24,9 @@ export function ClauseExplorer({ result }: { result: ClauseListResponse }) {
             </div>
             <p>{clause.text}</p>
             <div className="tag-row">
-              {clause.risk_tags.map((tag) => <span key={tag}>{tag}</span>)}
+              {clause.risk_tags.map((tag) => <span key={tag}>{riskTagLabels[tag]}</span>)}
             </div>
-            <small>Sayfa {clause.page_number ?? "—"} · Chunk {clause.chunk_index}</small>
+            <small>Sayfa {clause.page_number ?? "—"} · Metin bölümü {clause.chunk_index}</small>
           </article>
         ))}
       </div>
@@ -31,14 +39,16 @@ export function CompliancePanel({ report }: { report: ComplianceReport }) {
     <div>
       <div className="compliance-overview">
         <strong>{report.compliance_score}/100</strong>
-        <div><span>{report.status}</span><p>{report.disclaimer}</p></div>
+        <div><span>{complianceLabels[report.status]}</span><p>{report.disclaimer}</p></div>
       </div>
       <div className="finding-list">
         {report.findings.map((finding) => (
           <article className="compliance-card" key={finding.law}>
-            <div className="risk-card-header"><h3>{finding.law}</h3><span>{finding.status}</span></div>
-            {finding.issues.length > 0
-              ? <ul>{finding.issues.map((issue) => <li key={issue}>{issue}</li>)}</ul>
+            <div className="risk-card-header"><h3>{finding.law}</h3><span>{complianceLabels[finding.status]}</span></div>
+            {finding.status === "NOT_APPLICABLE"
+              ? <p>Bu mevzuatın uygulanmasını gerektiren bir sözleşme ilişkisi tespit edilmedi.</p>
+              : finding.issues.length > 0
+              ? <ul>{finding.missing_clauses.map((clause) => <li key={clause}>{clauseTypeLabels[clause]} maddesi tespit edilemedi.</li>)}</ul>
               : <p>Temel madde kategorilerinin tamamı tespit edildi.</p>}
             <strong>Öneri</strong><p>{finding.recommendation}</p>
           </article>
@@ -52,7 +62,7 @@ export function RiskCategories({ tags }: { tags: RiskTag[] }) {
   if (!tags.length) return <p className="analysis-empty">Risk kategorisi tespit edilmedi.</p>;
   return (
     <div className="risk-category-grid">
-      {tags.map((tag) => <article key={tag}><span>{tag.slice(0, 1)}</span><strong>{tag}</strong></article>)}
+      {tags.map((tag) => <article key={tag}><span>{riskTagLabels[tag].slice(0, 1)}</span><strong>{riskTagLabels[tag]}</strong></article>)}
     </div>
   );
 }

@@ -58,8 +58,8 @@ export function useLegalKnowledgeBase(enabled: boolean) {
       setDocuments((current) => [response.data, ...current]);
       setSelectedDocument(response.data);
     } catch {
-      setError("Legal belge yüklenemedi");
-      throw new Error("Legal belge yüklenemedi");
+      setError("Hukuki belge yüklenemedi");
+      throw new Error("Hukuki belge yüklenemedi");
     } finally {
       setIsUploading(false);
     }
@@ -72,7 +72,7 @@ export function useLegalKnowledgeBase(enabled: boolean) {
       setDocuments((current) => current.filter((document) => document.id !== documentId));
       setSelectedDocument((current) => (current?.id === documentId ? null : current));
     } catch {
-      setError("Legal belge silinemedi");
+      setError("Hukuki belge silinemedi");
     }
   }, []);
 
@@ -82,6 +82,18 @@ export function useLegalKnowledgeBase(enabled: boolean) {
   }), [documents, search, typeFilter]);
   const totalPages = Math.max(1, Math.ceil(filteredDocuments.length / pageSize));
   const visibleDocuments = filteredDocuments.slice((page - 1) * pageSize, page * pageSize);
+
+  useEffect(() => {
+    if (filteredDocuments.length === 0) {
+      setSelectedDocument(null);
+      return;
+    }
+    setSelectedDocument((current) => (
+      current && filteredDocuments.some((document) => document.id === current.id)
+        ? current
+        : filteredDocuments[0]
+    ));
+  }, [filteredDocuments]);
 
   const updateSearch = useCallback((value: string) => { setSearch(value); setPage(1); }, []);
   const updateTypeFilter = useCallback((value: string) => { setTypeFilter(value); setPage(1); }, []);

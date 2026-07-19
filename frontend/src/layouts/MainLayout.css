@@ -5,6 +5,7 @@
 .topbar-product { color:var(--text-primary); font-weight:750; }.topbar-divider { background:var(--border); height:18px; width:1px; }
 .topbar-actions button { align-items:center; background:transparent; border:0; color:var(--text-secondary); cursor:pointer; display:flex; padding:.45rem; }
 .system-pill { align-items:center; border:1px solid var(--border); border-radius:999px; display:flex; font-size:.7rem; gap:.4rem; padding:.35rem .6rem; }.system-pill i { background:var(--success); border-radius:50%; height:6px; width:6px; }
+.system-checking i { background:var(--warning); }.system-limited { color:var(--warning); }.system-limited i { background:var(--warning); }.system-offline { color:var(--danger); }.system-offline i { background:var(--danger); }
 .topbar-avatar { align-items:center; background:#18181b; border-radius:50%; color:white; display:flex; font-size:.72rem; font-weight:700; height:32px; justify-content:center; width:32px; }
 .main-content { margin:0 auto; max-width:1480px; padding:2rem clamp(1.25rem,3vw,3rem) 3rem; width:100%; }
 .layout-loading { align-items:center; display:flex; justify-content:center; min-height:100vh; }

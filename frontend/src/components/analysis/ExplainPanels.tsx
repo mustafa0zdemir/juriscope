@@ -1,13 +1,32 @@
 import type { AttributedSource, ExplainableAnalysis } from "../../types";
 
+const confidenceLabels = {
+  VERY_LOW: "Çok Düşük",
+  LOW: "Düşük",
+  MEDIUM: "Orta",
+  HIGH: "Yüksek",
+  VERY_HIGH: "Çok Yüksek",
+} as const;
+
+const retrievalStageLabels: Record<string, string> = {
+  Question: "Hukuki İnceleme Sorusu",
+  "Contract Retrieval": "Sözleşme Kaynaklarının Taranması",
+  "Law Retrieval": "Mevzuat Kaynaklarının Taranması",
+  "Case Retrieval": "Emsal Kararların Taranması",
+  "Hybrid Merge": "Anlamsal ve Anahtar Kelime Sonuçlarının Birleştirilmesi",
+  "Re-ranking": "Kaynakların Yeniden Sıralanması",
+  Gemini: "Yapay Zekâ Destekli Değerlendirme",
+  Answer: "Gerekçeli Analiz Sonucu",
+};
+
 function SourceCard({ source }: { source: AttributedSource }) {
   return (
     <div className="evidence-source">
       <strong>{source.title}</strong>
       <span>{source.article ? `Madde ${source.article}` : source.source_type}</span>
-      <span>Sayfa {source.page ?? "—"} · Chunk {source.chunk}</span>
+      <span>Sayfa {source.page ?? "—"} · Metin bölümü {source.chunk}</span>
       <span>Benzerlik %{Math.round(source.similarity * 100)}</span>
-      <span>Rerank {source.rerank_score?.toFixed(3) ?? "—"}</span>
+      <span>Yeniden sıralama skoru {source.rerank_score?.toFixed(3) ?? "—"}</span>
       <p>{source.text_excerpt}</p>
     </div>
   );
@@ -18,12 +37,12 @@ export function ConfidencePanel({ explanation }: { explanation: ExplainableAnaly
     <div className="confidence-panel">
       <div className="confidence-heading">
         <strong>{explanation.confidence_score}/100</strong>
-        <span>{explanation.confidence_level.replaceAll("_", " ")}</span>
+        <span>{confidenceLabels[explanation.confidence_level]}</span>
       </div>
       <div className="confidence-track" aria-label={`Güven puanı ${explanation.confidence_score}`}>
         <div className="confidence-fill" style={{ width: `${explanation.confidence_score}%` }} />
       </div>
-      <p>Model güveni, retrieval kalitesi, rerank skoru ve kaynak çeşitliliği birlikte değerlendirilmiştir.</p>
+      <p>Model güveni, kaynak erişim kalitesi, yeniden sıralama skoru ve kaynak çeşitliliği birlikte değerlendirilmiştir.</p>
     </div>
   );
 }
@@ -70,7 +89,7 @@ export function RetrievalPathPanel({ explanation }: { explanation: ExplainableAn
         <li key={step.stage}>
           <span className="timeline-dot" />
           <div>
-            <strong>{step.stage}</strong>
+            <strong>{retrievalStageLabels[step.stage] ?? step.stage}</strong>
             <p>{step.detail}</p>
             {step.hit_count !== null && <small>{step.hit_count} kaynak</small>}
           </div>

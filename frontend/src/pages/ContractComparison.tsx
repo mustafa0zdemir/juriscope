@@ -12,7 +12,7 @@ function ClauseColumn({ title, clauses, tone }: { title: string; clauses: Detect
         <article key={`${clause.contract_id}-${clause.clause_type}`}>
           <strong>{clause.title}</strong>
           <p>{clause.text}</p>
-          <small>Chunk {clause.chunk_index} · %{Math.round(clause.confidence * 100)} güven</small>
+          <small>Metin bölümü {clause.chunk_index} · %{Math.round(clause.confidence * 100)} güven</small>
         </article>
       ))}
       {!clauses.length && <p className="analysis-empty">Değişiklik bulunamadı.</p>}
@@ -27,7 +27,7 @@ export default function ContractComparison() {
 
   return (
     <div className="comparison-page">
-      <Link className="back-link" to="/dashboard">← Dashboard'a dön</Link>
+      <Link className="back-link" to="/dashboard">← Genel bakışa dön</Link>
       <SectionHeader eyebrow="Gelişmiş Analiz" title="Sözleşme Karşılaştırma" description="İki sürüm arasındaki madde, risk, hak ve yükümlülük değişimlerini inceleyin." />
       <section className="comparison-form">
         <label>Temel sözleşme<select value={comparison.baseId ?? ""} onChange={(event) => comparison.setBaseId(Number(event.target.value))}>{comparison.contracts.map((contract) => <option value={contract.id} key={contract.id}>{contract.original_filename}</option>)}</select></label>

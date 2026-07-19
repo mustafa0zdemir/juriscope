@@ -25,7 +25,7 @@ interface UseChatResult {
 
 const emptyError = "";
 
-export function useChat(): UseChatResult {
+export function useChat(initialConversationId?: number | null): UseChatResult {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
@@ -60,11 +60,12 @@ export function useChat(): UseChatResult {
   useEffect(() => {
     void loadConversations()
       .then((items) => {
-        if (items.length > 0) void loadConversation(items[0].id);
+        const initial = items.find((item) => item.id === initialConversationId) ?? items[0];
+        if (initial) void loadConversation(initial.id);
       })
       .catch(() => setError("Sohbetler yüklenemedi"))
       .finally(() => setIsLoading(false));
-  }, [loadConversation, loadConversations]);
+  }, [initialConversationId, loadConversation, loadConversations]);
 
   const createConversation = useCallback(async () => {
     setError(emptyError);

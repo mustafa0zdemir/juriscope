@@ -1,19 +1,11 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
-import Login from "../pages/Login";
-import Dashboard from "../pages/Dashboard";
-import Upload from "../pages/Upload";
-import NotFound from "../pages/NotFound";
-import Chat from "../pages/Chat";
-import ContractDetail from "../pages/ContractDetail";
-import LegalKnowledgeBase from "../pages/LegalKnowledgeBase";
-import ContractComparison from "../pages/ContractComparison";
 import AuthGuard from "../components/AuthGuard";
 
 export const router = createBrowserRouter([
   {
     path: "/login",
-    element: <Login />,
+    lazy: async () => ({ Component: (await import("../pages/Login")).default }),
   },
   {
     path: "/",
@@ -28,27 +20,27 @@ export const router = createBrowserRouter([
           },
           {
             path: "dashboard",
-            element: <Dashboard />,
+            lazy: async () => ({ Component: (await import("../pages/Dashboard")).default }),
           },
           {
             path: "upload",
-            element: <Upload />,
+            lazy: async () => ({ Component: (await import("../pages/Upload")).default }),
           },
           {
             path: "chat",
-            element: <Chat />,
+            lazy: async () => ({ Component: (await import("../pages/Chat")).default }),
           },
           {
             path: "contracts/:contractId",
-            element: <ContractDetail />,
+            lazy: async () => ({ Component: (await import("../pages/ContractDetail")).default }),
           },
           {
             path: "legal-kb",
-            element: <LegalKnowledgeBase />,
+            lazy: async () => ({ Component: (await import("../pages/LegalKnowledgeBase")).default }),
           },
           {
             path: "compare",
-            element: <ContractComparison />,
+            lazy: async () => ({ Component: (await import("../pages/ContractComparison")).default }),
           },
         ],
       },
@@ -56,6 +48,6 @@ export const router = createBrowserRouter([
   },
   {
     path: "*",
-    element: <NotFound />,
+    lazy: async () => ({ Component: (await import("../pages/NotFound")).default }),
   },
 ]);
