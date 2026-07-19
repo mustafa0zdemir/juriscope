@@ -14,11 +14,13 @@ class UserRepository:
         username: str,
         email: str,
         hashed_password: str,
+        full_name: str | None = None,
         is_active: bool = True,
     ) -> User:
         user = User(
             username=username,
             email=email,
+            full_name=full_name,
             hashed_password=hashed_password,
             is_active=is_active,
         )
@@ -32,6 +34,14 @@ class UserRepository:
 
     def get_by_username(self, username: str) -> Optional[User]:
         return self.db.query(User).filter(User.username == username).first()
+
+    def get_by_username_or_email(self, identifier: str) -> Optional[User]:
+        normalized = identifier.strip().lower()
+        return (
+            self.db.query(User)
+            .filter((User.username == normalized) | (User.email == normalized))
+            .first()
+        )
 
     def get_by_email(self, email: str) -> Optional[User]:
         return self.db.query(User).filter(User.email == email).first()

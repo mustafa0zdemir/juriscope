@@ -38,6 +38,14 @@ class BadRequestException(AppException):
         )
 
 
+class ConflictException(AppException):
+    def __init__(self, detail: str = "Resource already exists"):
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=detail,
+        )
+
+
 class LLMConfigurationException(AppException):
     def __init__(self, detail: str = "LLM yapılandırması eksik"):
         super().__init__(

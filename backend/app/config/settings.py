@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     secret_key: str = "change-this-to-a-secure-random-string"
     access_token_expire_minutes: int = 30
     algorithm: str = "HS256"
+    password_min_length: int = 12
+    max_login_attempts: int = 5
+    login_lock_minutes: int = 15
 
     cors_origins: List[str] = [
         "http://localhost:5173",
