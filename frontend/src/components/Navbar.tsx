@@ -7,8 +7,8 @@ export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/login");
   };
 
@@ -26,11 +26,14 @@ export default function Navbar() {
             <Icon name="book" /><span>Hukuk Bilgi Tabanı</span>
           </NavLink>
         )}
+        <NavLink to="/security" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
+          <Icon name="shield" /><span>Hesap Güvenliği</span>
+        </NavLink>
       </div>
 
       <div className="navbar-user">
         <div className="user-avatar">{user?.full_name?.slice(0,1).toUpperCase() ?? "K"}</div><span className="user-name"><strong>{user?.full_name}</strong><small>{user?.is_admin ? "Yönetici" : "Hukuk Kullanıcısı"}</small></span>
-        <button type="button" onClick={handleLogout} className="logout-button">
+        <button type="button" onClick={() => void handleLogout()} className="logout-button">
           <Icon name="logout" /><span>Çıkış</span>
         </button>
       </div>

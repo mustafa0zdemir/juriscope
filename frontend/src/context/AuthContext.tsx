@@ -5,7 +5,7 @@ import {
   type ReactNode,
 } from "react";
 import api from "../services/api";
-import type { User, LoginCredentials, TokenResponse } from "../types";
+import type { User, LoginCredentials, RegisterCredentials, TokenResponse } from "../types";
 import { AuthContext } from "./auth-context";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -27,6 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(null);
       setUser(null);
       localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
     } finally {
       setIsLoading(false);
     }
@@ -41,20 +42,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await api.post<TokenResponse>("/auth/login", credentials);
       const accessToken = response.data.access_token;
       localStorage.setItem("access_token", accessToken);
+      localStorage.setItem("refresh_token", response.data.refresh_token);
 
       const userResponse = await api.get<User>("/auth/me");
       setToken(accessToken);
       setUser(userResponse.data);
     } catch (error) {
       localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
       setToken(null);
       setUser(null);
       throw error;
     }
   };
 
-  const logout = () => {
+  const register = async (credentials: RegisterCredentials) => {
+    await api.post("/auth/register", credentials);
+    await login({ username: credentials.username, password: credentials.password });
+  };
+
+  const logout = async () => {
+    const refreshToken = localStorage.getItem("refresh_token");
+    if (refreshToken && token) {
+      try {
+        await api.post("/auth/logout", { refresh_token: refreshToken });
+      } catch {}
+    }
     localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
     setToken(null);
     setUser(null);
   };
@@ -67,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         isLoading,
         login,
+        register,
         logout,
       }}
     >

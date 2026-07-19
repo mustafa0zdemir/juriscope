@@ -8,6 +8,10 @@ export const router = createBrowserRouter([
     lazy: async () => ({ Component: (await import("../pages/Login")).default }),
   },
   {
+    path: "/register",
+    lazy: async () => ({ Component: (await import("../pages/Register")).default }),
+  },
+  {
     path: "/",
     element: <AuthGuard />,
     children: [
@@ -41,6 +45,10 @@ export const router = createBrowserRouter([
           {
             path: "compare",
             lazy: async () => ({ Component: (await import("../pages/ContractComparison")).default }),
+          },
+          {
+            path: "security",
+            lazy: async () => ({ Component: (await import("../pages/SecuritySettings")).default }),
           },
         ],
       },

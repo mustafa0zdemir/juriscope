@@ -5,15 +5,36 @@ export interface LoginCredentials {
 
 export interface TokenResponse {
   access_token: string;
+  refresh_token: string;
   token_type: string;
+  expires_in: number;
+}
+
+export interface RegisterCredentials {
+  username: string;
+  email: string;
+  full_name: string;
+  password: string;
+  password_confirmation: string;
 }
 
 export interface User {
   id: number;
   username: string;
   email: string;
-  full_name: string;
+  full_name: string | null;
+  is_active: boolean;
   is_admin: boolean;
+  email_verified: boolean;
+}
+
+export interface UserSession {
+  id: string;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+  last_used_at: string;
+  expires_at: string;
 }
 
 export interface UploadResponse {

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { Button, Icon } from "../components/ui";
 import "./Login.css";
@@ -74,6 +74,7 @@ export default function Login() {
         </form>
 
         <div className="login-footer">
+          <p>Hesabınız yok mu? <Link to="/register">Güvenli hesap oluşturun</Link></p>
           <p>Demo çalışma alanı: admin / admin123</p>
         </div>
       </div></div>
