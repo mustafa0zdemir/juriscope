@@ -16,6 +16,7 @@ from app.legal_analysis.schemas.analysis import (
     AnalysisCitation,
     LegalAnalysisRequest,
     LegalAnalysisResponse,
+    ParsedAnalysisResponse,
 )
 from app.rag.citation_builder import CitationBuilder
 from app.rag.multi_source_context_builder import MultiSourceContextBuilder
@@ -95,9 +96,9 @@ class LegalAnalysisService:
             question=self.ANALYSIS_QUERY,
             user_id=user_id,
             contract_ids=[contract_id],
-            top_k=settings.rerank_top_n,
+            top_k=settings.analysis_top_k,
             search_mode="hybrid",
-            rerank=True,
+            rerank=settings.analysis_rerank_enabled,
         )
         context = self.context_builder.build(retrieval_result.results)
         citations = self.citation_builder.build(retrieval_result.results)
@@ -114,7 +115,12 @@ class LegalAnalysisService:
                 retrieval_metrics=retrieval_metrics,
             )
         prompt = self.prompt_builder.build(context=context, citation_count=len(citations))
-        raw_response = self.llm_service.generate(prompt)
+        generate_json = getattr(self.llm_service, "generate_json", None)
+        raw_response = (
+            generate_json(prompt, ParsedAnalysisResponse)
+            if generate_json
+            else self.llm_service.generate(prompt)
+        )
         coverage = (
             self.citation_validator.validate(raw_response, len(citations))
             if settings.enable_citation_validation

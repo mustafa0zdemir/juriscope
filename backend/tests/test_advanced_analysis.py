@@ -66,13 +66,91 @@ def test_clause_detection_classifies_supported_clauses(db, current_user) -> None
     assert all(clause.risk_tags for clause in result.clauses)
 
 
+def test_clause_detection_ignores_definition_only_payment_word_and_limits_excerpt(
+    db, current_user
+) -> None:
+    contract = create_contract(
+        db,
+        current_user.id,
+        "definitions",
+        [
+            "TANIMLAR: HİZMET, bir ücret veya menfaat karşılığında sunulan işlemdir. "
+            + ("Diğer tanımlar burada yer alır. " * 40)
+            + "TESLİM: Ürün alıcıya üç iş günü içinde teslim edilir."
+        ],
+    )
+
+    result = ClauseDetectionService().detect(db, current_user.id, contract.id)
+
+    assert ClauseType.PAYMENT not in result.detected_types
+    assert ClauseType.DELIVERY in result.detected_types
+    delivery = next(clause for clause in result.clauses if clause.clause_type is ClauseType.DELIVERY)
+    assert len(delivery.text) < 700
+
+
+def test_clause_detection_redacts_personal_data_from_display_excerpt(db, current_user) -> None:
+    contract = create_contract(
+        db,
+        current_user.id,
+        "personal-data",
+        [
+            "TESLİM: Teslimat Adresi: Örnek Mahallesi No: 10 Telefon: +90 555 111 22 33 "
+            "Eposta: kisi@example.com Teslim edilecek kişi: Örnek Kişi Fatura Adresi: Aynı adres."
+        ],
+    )
+
+    result = ClauseDetectionService().detect(db, current_user.id, contract.id)
+    delivery = next(clause for clause in result.clauses if clause.clause_type is ClauseType.DELIVERY)
+
+    assert "kisi@example.com" not in delivery.text
+    assert "+90 555 111 22 33" not in delivery.text
+    assert "[E-POSTA GİZLENDİ]" in delivery.text
+
+
 def test_compliance_report_lists_missing_legislation_requirements(db, current_user) -> None:
     contract = create_contract(db, current_user.id, "compliance", ["Ödeme bedeli fatura tarihinden sonra ödenir."])
 
     report = ComplianceService().check(db, current_user.id, contract.id)
 
     assert report.compliance_score < 50
-    assert any(finding.law == "KVKK" and ClauseType.KVKK in finding.missing_clauses for finding in report.findings)
+    assert any(
+        finding.law == "6698 Sayılı Kişisel Verilerin Korunması Kanunu"
+        and finding.status.value == "NOT_APPLICABLE"
+        for finding in report.findings
+    )
+    assert any(
+        finding.law == "4857 Sayılı İş Kanunu"
+        and finding.status.value == "NOT_APPLICABLE"
+        for finding in report.findings
+    )
+
+
+def test_employment_law_requires_employment_relationship_markers(db, current_user) -> None:
+    contract = create_contract(
+        db,
+        current_user.id,
+        "employment",
+        ["İşveren ile işçi arasında kurulan bu iş sözleşmesi belirsiz sürelidir."],
+    )
+
+    report = ComplianceService().check(db, current_user.id, contract.id)
+    employment = next(finding for finding in report.findings if "İş Kanunu" in finding.law)
+
+    assert employment.status.value != "NOT_APPLICABLE"
+
+
+def test_sales_contract_phrase_does_not_trigger_employment_law(db, current_user) -> None:
+    contract = create_contract(
+        db,
+        current_user.id,
+        "distance-sales",
+        ["Mesafeli satış sözleşmesi satıcı ile alıcı arasında kurulmuştur."],
+    )
+
+    report = ComplianceService().check(db, current_user.id, contract.id)
+    employment = next(finding for finding in report.findings if "İş Kanunu" in finding.law)
+
+    assert employment.status.value == "NOT_APPLICABLE"
 
 
 def test_contract_comparison_finds_added_removed_and_modified_clauses(db, current_user) -> None:

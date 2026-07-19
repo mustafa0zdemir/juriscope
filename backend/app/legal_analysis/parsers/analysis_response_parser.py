@@ -24,4 +24,15 @@ class AnalysisResponseParser:
             content = content.split("\n", 1)[1] if "\n" in content else ""
             if content.endswith("```"):
                 content = content[:-3]
-        return content.strip()
+        content = content.strip()
+        if content.startswith("{"):
+            return content
+
+        start = content.find("{")
+        if start < 0:
+            return content
+        try:
+            _, end = json.JSONDecoder().raw_decode(content[start:])
+        except json.JSONDecodeError:
+            return content[start:]
+        return content[start : start + end]

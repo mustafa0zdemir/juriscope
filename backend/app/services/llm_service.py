@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Iterator
+from typing import Any
 
 from app.config.settings import settings
 from app.core.exceptions import LLMConfigurationException, LLMUnavailableException
@@ -37,6 +38,22 @@ class LLMService:
             ) from None
         except Exception:
             logger.exception("LLM cevabı oluşturulamadı")
+            raise LLMUnavailableException(
+                detail="LLM servisi kullanılamıyor"
+            ) from None
+
+    def generate_json(self, prompt: str, response_schema: Any) -> str:
+        try:
+            return self.provider.generate_json(prompt, response_schema)
+        except (LLMConfigurationException, LLMUnavailableException):
+            raise
+        except TimeoutError:
+            logger.warning("Yapılandırılmış LLM isteği zaman aşımına uğradı")
+            raise LLMUnavailableException(
+                detail="LLM isteği zaman aşımına uğradı"
+            ) from None
+        except Exception:
+            logger.exception("Yapılandırılmış LLM cevabı oluşturulamadı")
             raise LLMUnavailableException(
                 detail="LLM servisi kullanılamıyor"
             ) from None

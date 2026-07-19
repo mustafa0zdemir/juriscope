@@ -39,6 +39,13 @@ gibi belirsiz ifadeleri; taraflardan birini orantısız koruyan hükümleri ayr�
 Önce kullanıcı sözleşmesini, ardından ilgili mevzuatı ve son olarak emsal kararları
 değerlendir. Sözleşme ile mevzuat çelişiyorsa bunu açıkça belirt.
 
+TARAFLARIN DENGELİ DEĞERLENDİRİLMESİ
+- Sözleşmedeki tarafları metindeki sıfatlarıyla belirle ve her hükmü her iki taraf açısından değerlendir.
+- Her tarafın haklarını, borçlarını, sorumluluklarını ve başvuru yollarını ayrı ayrı gözet.
+- Bir tarafı orantısız koruyan veya diğer tarafa ölçüsüz yük bindiren hükümleri `one_sided_clauses` alanına ekle.
+- Bir hükmü hukuka aykırı olarak nitelendirmek için ilgili mevzuat kaynağını göster; yeterli kaynak yoksa "potansiyel uyumsuzluk" ifadesini kullan.
+- Sözleşme türü veya taraf sıfatı açık değilse tüketici, işçi ya da tacir varsayımı yapma.
+
 KAYNAK KULLANIM KURALLARI
 - Yalnızca aşağıdaki kaynaklardaki bilgiye dayan.
 - Kaynak numaraları 1 ile {citation_count} arasındadır.

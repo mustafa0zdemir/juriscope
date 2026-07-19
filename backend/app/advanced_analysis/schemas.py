@@ -50,6 +50,7 @@ class ComplianceStatus(str, Enum):
     COMPLIANT = "COMPLIANT"
     PARTIAL = "PARTIAL"
     NON_COMPLIANT = "NON_COMPLIANT"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
 
 
 class ComplianceFinding(BaseModel):

@@ -46,30 +46,92 @@ class ClauseDetectionService:
         )
 
     def detect_chunks(self, chunks: list[DocumentChunk]) -> list[DetectedClause]:
-        detected: list[DetectedClause] = []
+        detected: dict[ClauseType, DetectedClause] = {}
         for chunk in chunks:
             normalized = self._normalize(chunk.text)
             for clause_type, rule in CLAUSE_RULES.items():
-                matches = [keyword for keyword in rule.keywords if self._normalize(keyword) in normalized]
+                matches = [
+                    keyword
+                    for keyword in rule.keywords
+                    if self._contains_keyword(normalized, keyword)
+                ]
                 if not matches:
                     continue
-                confidence = min(1.0, 0.55 + (0.15 * len(matches)))
-                detected.append(
-                    DetectedClause(
-                        clause_type=clause_type,
-                        title=rule.title,
-                        contract_id=chunk.contract_id,
-                        chunk_id=chunk.id,
-                        chunk_index=chunk.chunk_index,
-                        page_number=chunk.page_number,
-                        text=chunk.text,
-                        confidence=confidence,
-                        matched_keywords=matches,
-                        risk_tags=list(rule.risk_tags),
-                    )
+                if clause_type is ClauseType.PAYMENT and not self._is_payment_clause(normalized, matches):
+                    continue
+                heading_match = self._has_heading(chunk.text, rule.title)
+                confidence = min(0.95, 0.5 + (0.12 * len(matches)) + (0.15 if heading_match else 0))
+                candidate = DetectedClause(
+                    clause_type=clause_type,
+                    title=rule.title,
+                    contract_id=chunk.contract_id,
+                    chunk_id=chunk.id,
+                    chunk_index=chunk.chunk_index,
+                    page_number=chunk.page_number,
+                    text=self._extract_snippet(chunk.text, matches),
+                    confidence=confidence,
+                    matched_keywords=matches,
+                    risk_tags=list(rule.risk_tags),
                 )
-        return sorted(detected, key=lambda clause: (clause.chunk_index, clause.clause_type.value))
+                current = detected.get(clause_type)
+                if current is None or candidate.confidence > current.confidence:
+                    detected[clause_type] = candidate
+        return sorted(detected.values(), key=lambda clause: (clause.chunk_index, clause.clause_type.value))
 
     @staticmethod
     def _normalize(text: str) -> str:
         return re.sub(r"\s+", " ", text.casefold()).strip()
+
+    @classmethod
+    def _contains_keyword(cls, normalized_text: str, keyword: str) -> bool:
+        normalized_keyword = cls._normalize(keyword)
+        return bool(re.search(rf"(?<!\w){re.escape(normalized_keyword)}(?!\w)", normalized_text))
+
+    @staticmethod
+    def _has_heading(text: str, title: str) -> bool:
+        return bool(re.search(rf"(?im)^\s*(?:madde\s+)?\d*[.):-]?\s*{re.escape(title)}\b", text))
+
+    @classmethod
+    def _is_payment_clause(cls, normalized_text: str, matches: list[str]) -> bool:
+        if any(keyword in {"ödeme", "fatura"} for keyword in matches):
+            return True
+        return bool(re.search(r"(?<!\w)(?:bedel|ücret)(?!\w).{0,100}(?:öden|tahsil|vade)", normalized_text))
+
+    @classmethod
+    def _extract_snippet(cls, text: str, matches: list[str], radius: int = 320) -> str:
+        normalized_text = text.casefold()
+        positions = [normalized_text.find(keyword.casefold()) for keyword in matches]
+        position = min(index for index in positions if index >= 0)
+        start = max(0, position - radius)
+        end = min(len(text), position + radius)
+        if start:
+            next_space = text.find(" ", start)
+            start = next_space + 1 if next_space >= 0 else start
+        if end < len(text):
+            previous_space = text.rfind(" ", start, end)
+            end = previous_space if previous_space > start else end
+        snippet = cls._redact_sensitive_data(re.sub(r"\s+", " ", text[start:end]).strip())
+        return f"{'…' if start else ''}{snippet}{'…' if end < len(text) else ''}"
+
+    @staticmethod
+    def _redact_sensitive_data(text: str) -> str:
+        redacted = re.sub(
+            r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}",
+            "[E-POSTA GİZLENDİ]",
+            text,
+        )
+        redacted = re.sub(
+            r"(?i)(telefon\s*:\s*)\+?[\d\s()/-]{7,}",
+            r"\1[TELEFON GİZLENDİ] ",
+            redacted,
+        )
+        redacted = re.sub(
+            r"(?i)((?:teslimat|fatura) adresi\s*:\s*).*?(?=\s+(?:telefon|e-?posta|teslim şekli|teslim edilecek kişi|fatura adresi)\s*:|$)",
+            r"\1[ADRES GİZLENDİ]",
+            redacted,
+        )
+        return re.sub(
+            r"(?i)(teslim edilecek kişi\s*:\s*).*?(?=\s+(?:telefon|e-?posta|fatura adresi|teslim şekli)\s*:|$)",
+            r"\1[KİŞİ GİZLENDİ]",
+            redacted,
+        )

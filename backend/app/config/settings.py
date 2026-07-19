@@ -40,10 +40,14 @@ class Settings(BaseSettings):
 
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.5-flash"
+    gemini_analysis_model: str = "gemini-3.1-flash-lite"
     max_output_tokens: int = 1024
     temperature: float = 0.2
     top_p: float = 0.95
     gemini_timeout_seconds: float = 30.0
+    analysis_top_k: int = 6
+    analysis_rerank_enabled: bool = False
+    analysis_max_output_tokens: int = 3072
 
     default_search_mode: str = "hybrid"
     enable_debug_search: bool = False

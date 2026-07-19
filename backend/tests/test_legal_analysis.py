@@ -97,6 +97,12 @@ def test_analysis_response_parser_accepts_json_code_fence() -> None:
     assert parsed.missing_clauses[0].title == "KVKK"
 
 
+def test_analysis_response_parser_extracts_json_from_model_preamble() -> None:
+    parsed = AnalysisResponseParser().parse(f"Analiz sonucu aşağıdadır:\n{make_analysis_json()}\nTamamlandı.")
+
+    assert parsed.risk_score == 82
+
+
 @pytest.mark.parametrize(
     ("score", "category"),
     [(0, RiskCategory.LOW), (25, RiskCategory.MEDIUM), (50, RiskCategory.HIGH), (75, RiskCategory.CRITICAL)],
@@ -112,7 +118,11 @@ def test_legal_analysis_uses_authorized_retrieval_gemini_and_citations() -> None
         retrieve_with_debug=lambda **kwargs: captured.update(kwargs)
         or HybridSearchResult([chunk], RetrievalDebug([], [], [chunk]))
     )
-    fake_llm = SimpleNamespace(generate=lambda prompt: make_analysis_json())
+    fake_llm = SimpleNamespace(
+        generate_json=lambda prompt, schema: captured.update(
+            {"response_schema": schema, "prompt": prompt}
+        ) or make_analysis_json()
+    )
     contract = SimpleNamespace(id=42, user_id=7, status="embedded")
 
     with patch(
@@ -131,7 +141,10 @@ def test_legal_analysis_uses_authorized_retrieval_gemini_and_citations() -> None
 
     assert captured["contract_ids"] == [42]
     assert captured["search_mode"] == "hybrid"
-    assert captured["rerank"] is True
+    assert captured["rerank"] is False
+    assert captured["top_k"] == 6
+    assert captured["response_schema"].__name__ == "ParsedAnalysisResponse"
+    assert "TARAFLARIN DENGELİ DEĞERLENDİRİLMESİ" in captured["prompt"]
     assert result.risk_category is RiskCategory.CRITICAL
     assert [citation.model_dump(exclude_defaults=True, exclude_none=True) for citation in result.citations] == [
         Citation(contract_id=42, chunk_id=10, chunk_index=0, page_number=3, score=0.91).to_dict()
