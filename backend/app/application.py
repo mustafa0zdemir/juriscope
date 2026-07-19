@@ -8,6 +8,7 @@ from app.config.settings import settings
 from app.storage.providers.minio_provider import MinioProvider
 from app.embeddings.sentence_transformer_provider import SentenceTransformerProvider
 from app.storage.qdrant_service import QdrantService
+from app.middleware.security_headers import SecurityHeadersMiddleware
 
 
 @asynccontextmanager
@@ -44,6 +45,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.add_middleware(SecurityHeadersMiddleware)
 
     app.include_router(api_v1_router, prefix="/api/v1")
 

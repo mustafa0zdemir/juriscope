@@ -7,8 +7,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.base import Base
 
 if TYPE_CHECKING:
+    from app.models.audit_log import AuditLog
     from app.models.contract import Contract
     from app.models.conversation import Conversation
+    from app.models.user_session import UserSession
 
 
 class User(Base):
@@ -37,4 +39,10 @@ class User(Base):
     )
     conversations: Mapped[list["Conversation"]] = relationship(
         "Conversation", back_populates="user", cascade="all, delete-orphan", order_by="Conversation.created_at.desc()"
+    )
+    sessions: Mapped[list["UserSession"]] = relationship(
+        "UserSession", back_populates="user", cascade="all, delete-orphan"
+    )
+    audit_logs: Mapped[list["AuditLog"]] = relationship(
+        "AuditLog", back_populates="user"
     )

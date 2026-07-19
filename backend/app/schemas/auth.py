@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -51,7 +52,43 @@ class RegisterRequest(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
+    expires_in: int = settings.access_token_expire_minutes * 60
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str = Field(min_length=20)
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=settings.password_min_length, max_length=128)
+    new_password_confirmation: str = Field(min_length=1, max_length=128)
+
+    @model_validator(mode="after")
+    def validate_new_password(self) -> "ChangePasswordRequest":
+        if self.new_password != self.new_password_confirmation:
+            raise ValueError("Yeni şifreler eşleşmiyor")
+        errors = validate_password_strength(self.new_password)
+        if errors:
+            raise ValueError("; ".join(errors))
+        return self
+
+
+class SessionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    ip_address: str | None
+    user_agent: str | None
+    created_at: datetime
+    last_used_at: datetime
+    expires_at: datetime
+
+
+class MessageResponse(BaseModel):
+    message: str
 
 
 class UserResponse(BaseModel):
