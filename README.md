@@ -694,6 +694,50 @@ Tüm ekranlar klavye odağı, okunabilir form etiketleri ve mobil/tablet kırıl
 dikkate alınarak responsive hazırlanmıştır. Tema değişikliği yalnızca sunum
 katmanındadır; backend endpointleri, RAG akışı ve veri modelleri değiştirilmemiştir.
 
+## Kimlik ve Oturum Güvenliği
+
+Kullanıcılar `/register` ekranından hesap oluşturabilir. Kullanıcı adı ve e-posta
+benzersizdir; yeni şifrelerde en az 12 karakter, büyük harf, küçük harf, rakam ve
+özel karakter zorunludur. Ardışık hatalı girişler hesabı yapılandırılabilir süreyle
+geçici olarak kilitler.
+
+Kimlik doğrulama kısa ömürlü access token ve veritabanında SHA-256 özeti tutulan
+refresh token kullanır. Her yenilemede refresh token döndürülür, önceki oturum
+kaydı iptal edilir ve eski token tekrar kullanılamaz. Şifre değişikliğinde
+kullanıcının tüm etkin oturumları sonlandırılır.
+
+```text
+Kayıt / Giriş
+    → Parola politikası ve rate limit
+    → Access token + Refresh token
+    → user_sessions kaydı
+    → Token rotasyonu
+    → Audit log
+```
+
+`Hesap Güvenliği` ekranında etkin cihazlar, IP adresleri ve son kullanım zamanları
+görüntülenebilir; seçilen oturumlar uzaktan kapatılabilir. Kayıt, başarılı/başarısız
+giriş, token yenileme, çıkış, şifre değişikliği ve oturum iptali olayları
+`audit_logs` tablosunda tutulur. API yanıtlarına clickjacking, MIME sniffing,
+referrer ve tarayıcı izinlerini sınırlandıran güvenlik başlıkları eklenir.
+
+```env
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+REFRESH_TOKEN_EXPIRE_DAYS=7
+PASSWORD_MIN_LENGTH=12
+MAX_LOGIN_ATTEMPTS=5
+LOGIN_LOCK_MINUTES=15
+AUTH_RATE_LIMIT_REQUESTS=10
+AUTH_RATE_LIMIT_WINDOW_SECONDS=60
+```
+
+Yeni güvenlik tablolarını oluşturmak için backend başlatıldıktan sonra migrasyonlar
+uygulanmalıdır:
+
+```bash
+docker compose exec backend alembic upgrade head
+```
+
 ## Frontend (Lokal)
 
 ```bash
@@ -715,7 +759,13 @@ Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
 |--------|----------|----------|
 | GET | `/api/v1/health` | Servis durum kontrolü |
 | GET | `/api/v1/health/llm` | Gemini yapılandırma ve model durumu |
-| POST | `/api/v1/auth/login` | JWT token al |
+| POST | `/api/v1/auth/register` | Güçlü parola politikasıyla kullanıcı hesabı oluştur |
+| POST | `/api/v1/auth/login` | Access ve refresh token al |
+| POST | `/api/v1/auth/refresh` | Refresh token rotasyonuyla yeni token çifti al |
+| POST | `/api/v1/auth/logout` | Mevcut oturumu güvenli biçimde sonlandır |
+| POST | `/api/v1/auth/change-password` | Şifreyi değiştir ve tüm oturumları kapat |
+| GET | `/api/v1/auth/sessions` | Etkin kullanıcı oturumlarını listele |
+| DELETE | `/api/v1/auth/sessions/{session_id}` | Seçilen oturumu sonlandır |
 | GET | `/api/v1/auth/me` | Giriş yapan kullanıcı bilgisi |
 | POST | `/api/v1/upload` | Dosya yükleme (PDF, DOC, DOCX) → MinIO |
 | GET | `/api/v1/contracts` | Kullanıcının sözleşmelerini listele |
