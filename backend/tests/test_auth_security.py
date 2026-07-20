@@ -184,3 +184,14 @@ def test_security_headers_are_present(client):
 
     assert response.headers["x-content-type-options"] == "nosniff"
     assert response.headers["x-frame-options"] == "DENY"
+
+
+def test_cache_health_reports_disabled_redis(client):
+    response = client.get("/api/v1/health/cache")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "provider": "redis",
+        "enabled": False,
+        "status": "disabled",
+    }

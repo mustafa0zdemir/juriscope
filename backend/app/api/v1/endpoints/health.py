@@ -1,8 +1,14 @@
 from fastapi import APIRouter
 
 from app.config.settings import settings
+from app.core.rate_limit import auth_rate_limiter
 from app.llm.gemini_provider import GeminiProvider
-from app.schemas.health import HealthResponse, LLMHealthResponse, RAGHealthResponse
+from app.schemas.health import (
+    CacheHealthResponse,
+    HealthResponse,
+    LLMHealthResponse,
+    RAGHealthResponse,
+)
 
 router = APIRouter(tags=["Health"])
 
@@ -18,6 +24,14 @@ async def llm_health_check():
         provider="gemini",
         model=settings.gemini_model,
         configured=GeminiProvider.is_configured(),
+    )
+
+
+@router.get("/health/cache", response_model=CacheHealthResponse)
+def cache_health_check():
+    return CacheHealthResponse(
+        enabled=settings.redis_enabled,
+        status=auth_rate_limiter.status(),
     )
 
 

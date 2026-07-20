@@ -11,6 +11,12 @@ class LLMHealthResponse(BaseModel):
     configured: bool
 
 
+class CacheHealthResponse(BaseModel):
+    provider: str = "redis"
+    enabled: bool
+    status: str
+
+
 class RAGHealthResponse(BaseModel):
     retrieval: str
     reranker: str

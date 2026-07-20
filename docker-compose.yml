@@ -16,6 +16,8 @@ services:
       - SECRET_KEY=change-this-to-a-secure-random-string
       - ACCESS_TOKEN_EXPIRE_MINUTES=30
       - ALGORITHM=HS256
+      - REDIS_ENABLED=true
+      - REDIS_URL=redis://redis:6379/0
       - CORS_ORIGINS=["http://localhost:5173","http://127.0.0.1:5173","http://localhost:3000"]
       - DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/contract_analysis
       - UPLOAD_DIR=uploads
@@ -37,6 +39,8 @@ services:
         condition: service_healthy
       qdrant:
         condition: service_started
+      redis:
+        condition: service_healthy
     restart: unless-stopped
 
   postgres:
@@ -90,6 +94,19 @@ services:
       - qdrant_data:/qdrant/storage
     networks:
       - legal-network
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: redis
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    restart: unless-stopped
+    networks:
+      - legal-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
 networks:
   legal-network:

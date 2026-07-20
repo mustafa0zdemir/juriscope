@@ -25,6 +25,12 @@ class Settings(BaseSettings):
     auth_rate_limit_requests: int = 10
     auth_rate_limit_window_seconds: int = 60
 
+    redis_enabled: bool = False
+    redis_url: str = "redis://redis:6379/0"
+    redis_password: str = ""
+    redis_socket_timeout_seconds: float = 0.5
+    redis_retry_seconds: int = 30
+
     cors_origins: List[str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
