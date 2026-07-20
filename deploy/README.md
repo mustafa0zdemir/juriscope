@@ -144,4 +144,4 @@ branchine pushlandıktan sonra manuel deployment workflow'u yeniden çalıştır
 - Production gizli değerlerini repoya, Actions loglarına veya frontend env'ine koymayın.
 - Gemini anahtarını yalnızca backend ortamında tutun ve periyodik olarak döndürün.
 - `docker compose logs` için log rotasyonu production compose içinde aktiftir.
-- Yüksek trafik oluşana kadar Redis/Kafka zorunlu değildir; belge işleme kuyruğu ayrı bir ölçekleme aşamasıdır.
+- Kafka ve ayrı bir belge işleme worker kuyruğu, trafik artana kadar gerekli değildir; Redis mevcut dağıtık rate-limit için kullanılır.
