@@ -747,6 +747,29 @@ npm run dev
 # http://localhost:5173
 ```
 
+## Production Deployment
+
+Production dağıtımı geliştirme ortamından ayrılmıştır:
+
+- React + Vite frontend Vercel üzerinde yayınlanır.
+- FastAPI, PostgreSQL, MinIO ve Qdrant bir Linux sunucusunda Docker Compose ile çalışır.
+- Caddy otomatik TLS sertifikası üretir ve SSE streaming yanıtlarını kesmeden proxy eder.
+- PostgreSQL, MinIO, Qdrant ve Redis internete port yayınlamaz; yalnızca özel Docker ağında kalır.
+- Alembic migration'ları backend başlamadan önce tek seferlik migration servisiyle uygulanır.
+- BGE embedding/reranker modelleri kalıcı Hugging Face cache volume'ünde tutulur.
+- Redis, kimlik doğrulama endpoint'lerinin dağıtık rate-limit sayaçlarını tutar; erişilemezse in-memory fallback devreye girer.
+- GitHub Actions backend testlerini, frontend build/lint işlemlerini ve deployment yapılandırmasını doğrular.
+
+Production ortam dosyasını oluşturmak için:
+
+```bash
+cp deploy/.env.production.example deploy/.env.production
+docker compose --env-file deploy/.env.production -f docker-compose.production.yml up -d --build
+```
+
+Sunucu, Vercel, DNS, GitHub Actions secrets, yedekleme ve geri dönüş adımları için
+[`deploy/README.md`](deploy/README.md) rehberini kullanın.
+
 ---
 
 ## API Dokümantasyonu
@@ -759,6 +782,7 @@ Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
 |--------|----------|----------|
 | GET | `/api/v1/health` | Servis durum kontrolü |
 | GET | `/api/v1/health/llm` | Gemini yapılandırma ve model durumu |
+| GET | `/api/v1/health/cache` | Redis rate-limit altyapısının durumu |
 | POST | `/api/v1/auth/register` | Güçlü parola politikasıyla kullanıcı hesabı oluştur |
 | POST | `/api/v1/auth/login` | Access ve refresh token al |
 | POST | `/api/v1/auth/refresh` | Refresh token rotasyonuyla yeni token çifti al |
@@ -825,5 +849,7 @@ Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
 │       ├── router/
 │       ├── services/
 │       └── types/
-└── docker-compose.yml
+├── deploy/                     # Caddy ve production kurulum rehberi
+├── docker-compose.yml          # Lokal geliştirme ortamı
+└── docker-compose.production.yml
 ```
