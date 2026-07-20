@@ -1,0 +1,83 @@
+name: Kalite Kontrolu
+
+on:
+  workflow_call:
+  push:
+    branches: [main, deployment]
+  pull_request:
+    branches: [main, deployment]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-tests:
+    name: Backend testleri
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Kaynak kodu al
+        uses: actions/checkout@v4
+
+      - name: Python 3.13 kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Python bagimliliklarini kur
+        run: pip install --requirement requirements.txt
+
+      - name: Backend testlerini calistir
+        run: pytest --quiet
+
+  frontend-checks:
+    name: Frontend kalite kontrolu
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Kaynak kodu al
+        uses: actions/checkout@v4
+
+      - name: Node.js 22 kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Frontend bagimliliklarini kur
+        run: npm ci
+
+      - name: Kod kalitesini denetle
+        run: npm run lint
+
+      - name: Production build olustur
+        env:
+          VITE_API_URL: https://api.example.com/api/v1
+        run: npm run build
+
+  deployment-config:
+    name: Deployment yapilandirmasi
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Kaynak kodu al
+        uses: actions/checkout@v4
+
+      - name: Production Compose dosyasini dogrula
+        run: docker compose --env-file deploy/.env.production.example --file docker-compose.production.yml config --quiet
+
+      - name: Caddy yapilandirmasini dogrula
+        run: docker run --rm --env API_DOMAIN=api.example.com --env ACME_EMAIL=off --volume "$PWD/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile
