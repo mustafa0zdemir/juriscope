@@ -1,0 +1,185 @@
+x-backend-environment: &backend-environment
+  APP_NAME: ${APP_NAME:-Sozlesme Analizi Sistemi}
+  APP_VERSION: ${APP_VERSION:-1.0.0}
+  DEBUG: "false"
+  SECRET_KEY: ${SECRET_KEY:?SECRET_KEY tanimlanmalidir}
+  ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+  REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
+  ALGORITHM: ${ALGORITHM:-HS256}
+  PASSWORD_MIN_LENGTH: ${PASSWORD_MIN_LENGTH:-12}
+  MAX_LOGIN_ATTEMPTS: ${MAX_LOGIN_ATTEMPTS:-5}
+  LOGIN_LOCK_MINUTES: ${LOGIN_LOCK_MINUTES:-15}
+  AUTH_RATE_LIMIT_REQUESTS: ${AUTH_RATE_LIMIT_REQUESTS:-10}
+  AUTH_RATE_LIMIT_WINDOW_SECONDS: ${AUTH_RATE_LIMIT_WINDOW_SECONDS:-60}
+  CORS_ORIGINS: ${CORS_ORIGINS:?CORS_ORIGINS tanimlanmalidir}
+  DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-contract_app}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD tanimlanmalidir}@postgres:5432/${POSTGRES_DB:-contract_analysis}
+  MINIO_ENDPOINT: minio:9000
+  MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:?MINIO_ROOT_USER tanimlanmalidir}
+  MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD tanimlanmalidir}
+  MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-contracts}
+  MINIO_SECURE: "false"
+  QDRANT_URL: http://qdrant:6333
+  QDRANT_COLLECTION: ${QDRANT_COLLECTION:-contracts}
+  LEGAL_COLLECTION: ${LEGAL_COLLECTION:-legal_documents}
+  EMBEDDING_MODEL: ${EMBEDDING_MODEL:-BAAI/bge-m3}
+  GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+  GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+  GEMINI_ANALYSIS_MODEL: ${GEMINI_ANALYSIS_MODEL:-gemini-3.1-flash-lite}
+  MAX_OUTPUT_TOKENS: ${MAX_OUTPUT_TOKENS:-1024}
+  TEMPERATURE: ${TEMPERATURE:-0.2}
+  TOP_P: ${TOP_P:-0.95}
+  GEMINI_TIMEOUT_SECONDS: ${GEMINI_TIMEOUT_SECONDS:-30}
+  ANALYSIS_TOP_K: ${ANALYSIS_TOP_K:-6}
+  ANALYSIS_RERANK_ENABLED: ${ANALYSIS_RERANK_ENABLED:-false}
+  ANALYSIS_MAX_OUTPUT_TOKENS: ${ANALYSIS_MAX_OUTPUT_TOKENS:-3072}
+  DEFAULT_SEARCH_MODE: ${DEFAULT_SEARCH_MODE:-hybrid}
+  ENABLE_DEBUG_SEARCH: ${ENABLE_DEBUG_SEARCH:-false}
+  ENABLE_LEGAL_SEARCH: ${ENABLE_LEGAL_SEARCH:-true}
+  ENABLE_MULTI_SOURCE_RAG: ${ENABLE_MULTI_SOURCE_RAG:-true}
+  LEGAL_TOP_K: ${LEGAL_TOP_K:-10}
+  LEGAL_RERANK_TOP_N: ${LEGAL_RERANK_TOP_N:-5}
+  RERANK_ENABLED: ${RERANK_ENABLED:-true}
+  RERANK_MODEL: ${RERANK_MODEL:-BAAI/bge-reranker-v2-m3}
+  RERANK_INPUT_LIMIT: ${RERANK_INPUT_LIMIT:-20}
+  RERANK_TOP_N: ${RERANK_TOP_N:-5}
+  RERANK_TIMEOUT_SECONDS: ${RERANK_TIMEOUT_SECONDS:-30}
+  ENABLE_RAG_GUARDRAILS: ${ENABLE_RAG_GUARDRAILS:-true}
+  ENABLE_GROUNDING_CHECK: ${ENABLE_GROUNDING_CHECK:-true}
+  ENABLE_CITATION_VALIDATION: ${ENABLE_CITATION_VALIDATION:-true}
+  ENABLE_HALLUCINATION_CHECK: ${ENABLE_HALLUCINATION_CHECK:-true}
+  MIN_CONTEXT_CHUNKS: ${MIN_CONTEXT_CHUNKS:-1}
+  MIN_CONTEXT_CHARACTERS: ${MIN_CONTEXT_CHARACTERS:-10}
+  MIN_RETRIEVAL_SCORE: ${MIN_RETRIEVAL_SCORE:-0.2}
+  MIN_RERANK_SCORE: ${MIN_RERANK_SCORE:-0.0}
+  ENABLE_DEBUG_CHAT: ${ENABLE_DEBUG_CHAT:-false}
+  UPLOAD_DIR: /app/uploads
+  MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-20}
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "5"
+
+services:
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?API_DOMAIN tanimlanmalidir}
+      ACME_EMAIL: ${ACME_EMAIL:-off}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - public-network
+    depends_on:
+      backend:
+        condition: service_healthy
+    logging: *default-logging
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.production
+    image: sozlesme-analizi-backend:${APP_VERSION:-latest}
+    restart: unless-stopped
+    environment: *backend-environment
+    expose:
+      - "8000"
+    volumes:
+      - uploads_data:/app/uploads
+      - hf_cache:/home/appuser/.cache/huggingface
+    networks:
+      - public-network
+      - data-network
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    logging: *default-logging
+
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.production
+    image: sozlesme-analizi-backend:${APP_VERSION:-latest}
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+    environment: *backend-environment
+    networks:
+      - data-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *default-logging
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-contract_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD tanimlanmalidir}
+      POSTGRES_DB: ${POSTGRES_DB:-contract_analysis}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - data-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-contract_app} -d ${POSTGRES_DB:-contract_analysis}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *default-logging
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER tanimlanmalidir}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD tanimlanmalidir}
+    volumes:
+      - minio_data:/data
+    networks:
+      - data-network
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *default-logging
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: unless-stopped
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - data-network
+    logging: *default-logging
+
+networks:
+  public-network:
+  data-network:
+    internal: true
+
+volumes:
+  postgres_data:
+  minio_data:
+  qdrant_data:
+  uploads_data:
+  hf_cache:
+  caddy_data:
+  caddy_config:

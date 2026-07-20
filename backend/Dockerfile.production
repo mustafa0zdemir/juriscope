@@ -1,0 +1,31 @@
+FROM python:3.13-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    HF_HOME=/home/appuser/.cache/huggingface \
+    TRANSFORMERS_CACHE=/home/appuser/.cache/huggingface
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends libgomp1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system appuser \
+    && useradd --system --gid appuser --create-home appuser
+
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY --chown=appuser:appuser . .
+RUN mkdir -p /app/uploads /home/appuser/.cache/huggingface \
+    && chown -R appuser:appuser /app/uploads /home/appuser/.cache
+
+USER appuser
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10m --retries=5 \
+    CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3)"]
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--proxy-headers", "--forwarded-allow-ips=*"]
