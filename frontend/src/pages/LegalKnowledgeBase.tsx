@@ -61,7 +61,7 @@ export default function LegalKnowledgeBase() {
           <label>Kaynak<input value={source} onChange={(event) => setSource(event.target.value)} required /></label>
           <label>Resmî / karar numarası<input value={officialNumber} onChange={(event) => setOfficialNumber(event.target.value)} /></label>
           <label>Yayın tarihi<input type="date" value={publicationDate} onChange={(event) => setPublicationDate(event.target.value)} /></label>
-          <div className="file-field">PDF veya DOCX<input type="file" accept=".pdf,.docx" onChange={(event) => setFile(event.target.files?.[0] ?? null)} required /></div>
+          <div className="file-field"><label htmlFor="legal_file">PDF veya DOCX</label><input id="legal_file" type="file" accept=".pdf,.docx" onChange={(event) => setFile(event.target.files?.[0] ?? null)} required /></div>
           <Button type="submit" icon="plus" disabled={knowledgeBase.isUploading || !file}>{knowledgeBase.isUploading ? "Yükleniyor..." : "Bilgi tabanına ekle"}</Button>
         </form>
 
