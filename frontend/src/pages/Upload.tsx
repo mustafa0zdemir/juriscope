@@ -38,7 +38,7 @@ export default function Upload() {
     <div className="upload-layout">
       <Card className="upload-main-card">
         <button className={`upload-dropzone ${isDragging ? "dragging" : ""}`} disabled={uploader.isUploading} onClick={() => inputRef.current?.click()} onDragOver={(event) => { event.preventDefault(); setIsDragging(true); }} onDragLeave={(event) => { event.preventDefault(); setIsDragging(false); }} onDrop={drop} type="button">
-          <input ref={inputRef} hidden type="file" accept=".pdf,.doc,.docx" onChange={change} />
+          <input ref={inputRef} hidden type="file" accept=".pdf,.doc,.docx" onChange={change} onClick={(e) => e.stopPropagation()} />
           {uploader.isUploading ? <><div className="spinner" /><h2>Belge güvenli şekilde yükleniyor</h2><p>Lütfen pencereyi kapatmayın.</p></> : <><span className="upload-illustration"><Icon name="upload" size={26} /></span><h2>Dosyayı buraya sürükleyin</h2><p>veya bilgisayarınızdan seçmek için tıklayın</p><span className="upload-formats">PDF · DOC · DOCX &nbsp; / &nbsp; Maksimum 20 MB</span></>}
         </button>
         {uploader.error && <div className="upload-error"><Icon name="alert" />{uploader.error}</div>}
