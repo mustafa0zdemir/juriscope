@@ -1,6 +1,9 @@
 name: Production Dagitimi
 
 on:
+  push:
+    branches:
+      - deployment
   workflow_dispatch:
 
 permissions:
