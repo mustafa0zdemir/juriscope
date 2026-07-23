@@ -14,14 +14,22 @@ export default function Login() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setError("");
     setIsSubmitting(true);
 
     try {
       await login({ username, password });
       navigate("/dashboard");
-    } catch {
-      setError("Geçersiz kullanıcı adı veya şifre");
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail;
+      if (typeof detail === "string") {
+        setError(detail);
+      } else if (Array.isArray(detail) && typeof detail[0]?.msg === "string") {
+        setError(detail[0].msg.replace("Value error, ", ""));
+      } else {
+        setError("Geçersiz kullanıcı adı veya şifre");
+      }
     } finally {
       setIsSubmitting(false);
     }

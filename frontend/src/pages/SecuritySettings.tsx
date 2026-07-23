@@ -20,6 +20,7 @@ export default function SecuritySettings() {
   const [isLoading, setIsLoading] = useState(true);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({ current_password: "", new_password: "", new_password_confirmation: "" });
 
   const loadSessions = useCallback(async () => {
@@ -37,14 +38,35 @@ export default function SecuritySettings() {
 
   const changePassword = async (event: FormEvent) => {
     event.preventDefault();
+    if (isSubmitting) return;
     setError("");
     setNotice("");
+
+    if (form.new_password !== form.new_password_confirmation) {
+      setError("Yeni şifreler eşleşmiyor.");
+      return;
+    }
+
+    const hasUpperCase = /[A-Z]/.test(form.new_password);
+    const hasLowerCase = /[a-z]/.test(form.new_password);
+    const hasNumbers = /\d/.test(form.new_password);
+    const hasNonalphas = /\W/.test(form.new_password);
+
+    if (form.new_password.length < 12 || !hasUpperCase || !hasLowerCase || !hasNumbers || !hasNonalphas) {
+      setError("Yeni şifre güçlü parola kurallarına uymuyor. En az 12 karakter; en az bir büyük harf, bir küçük harf, bir rakam ve bir özel karakter içermelidir.");
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       await api.post("/auth/change-password", form);
       setNotice("Şifreniz değiştirildi. Güvenliğiniz için yeniden giriş yapın.");
+      setForm({ current_password: "", new_password: "", new_password_confirmation: "" });
       setTimeout(() => { void logout(); }, 1200);
     } catch (changeError) {
       setError(messageFrom(changeError));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -69,7 +91,7 @@ export default function SecuritySettings() {
           <label>Yeni Şifre<input type="password" value={form.new_password} onChange={(event) => setForm({ ...form, new_password: event.target.value })} required autoComplete="new-password" /></label>
           <label>Yeni Şifre Tekrarı<input type="password" value={form.new_password_confirmation} onChange={(event) => setForm({ ...form, new_password_confirmation: event.target.value })} required autoComplete="new-password" /></label>
           <small>En az 12 karakter; büyük/küçük harf, rakam ve özel karakter zorunludur.</small>
-          <Button type="submit" icon="shield">Şifreyi Güvenle Değiştir</Button>
+          <Button type="submit" icon="shield" disabled={isSubmitting}>{isSubmitting ? "Değiştiriliyor..." : "Şifreyi Güvenle Değiştir"}</Button>
         </form>
         <div className="security-card profile-security">
           <div><h2>Hesap Durumu</h2><p>Kimlik ve yetki bilgileriniz.</p></div>

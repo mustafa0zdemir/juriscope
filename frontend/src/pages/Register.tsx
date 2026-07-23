@@ -34,7 +34,24 @@ export default function Register() {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (isSubmitting) return;
     setError("");
+
+    if (form.password !== form.password_confirmation) {
+      setError("Şifreler eşleşmiyor.");
+      return;
+    }
+
+    const hasUpperCase = /[A-Z]/.test(form.password);
+    const hasLowerCase = /[a-z]/.test(form.password);
+    const hasNumbers = /\d/.test(form.password);
+    const hasNonalphas = /\W/.test(form.password);
+
+    if (form.password.length < 12 || !hasUpperCase || !hasLowerCase || !hasNumbers || !hasNonalphas) {
+      setError("Şifre güçlü parola kurallarına uymuyor. En az 12 karakter; en az bir büyük harf, bir küçük harf, bir rakam ve bir özel karakter içermelidir.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await register(form);
