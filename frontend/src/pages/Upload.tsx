@@ -31,18 +31,21 @@ export default function Upload() {
     void uploader.upload(file);
   };
   const drop = (event: DragEvent) => { event.preventDefault(); setIsDragging(false); select(event.dataTransfer.files[0]); };
-  const change = (event: ChangeEvent<HTMLInputElement>) => select(event.target.files?.[0]);
+  const change = (event: ChangeEvent<HTMLInputElement>) => {
+    select(event.target.files?.[0]);
+    event.target.value = "";
+  };
 
   return <div className="upload-page">
     <SectionHeader eyebrow="Belge Yönetimi" title="Yeni sözleşme yükle" description="Sözleşmenizi güvenli belge işleme sürecine aktarın. Metin çıkarma, bölümleme ve vektör dizinleme işlemleri otomatik başlar." />
     <div className="upload-layout">
       <Card className="upload-main-card">
+        <input ref={inputRef} hidden type="file" accept=".pdf,.doc,.docx" onChange={change} />
         <button className={`upload-dropzone ${isDragging ? "dragging" : ""}`} disabled={uploader.isUploading} onClick={() => inputRef.current?.click()} onDragOver={(event) => { event.preventDefault(); setIsDragging(true); }} onDragLeave={(event) => { event.preventDefault(); setIsDragging(false); }} onDrop={drop} type="button">
-          <input ref={inputRef} hidden type="file" accept=".pdf,.doc,.docx" onChange={change} />
           {uploader.isUploading ? <><div className="spinner" /><h2>Belge güvenli şekilde yükleniyor</h2><p>Lütfen pencereyi kapatmayın.</p></> : <><span className="upload-illustration"><Icon name="upload" size={26} /></span><h2>Dosyayı buraya sürükleyin</h2><p>veya bilgisayarınızdan seçmek için tıklayın</p><span className="upload-formats">PDF · DOC · DOCX &nbsp; / &nbsp; Maksimum 20 MB</span></>}
         </button>
         {uploader.error && <div className="upload-error"><Icon name="alert" />{uploader.error}</div>}
-        {uploader.result && <div className="upload-result"><span><Icon name="check" /></span><div><h3>{uploader.result.message}</h3><p>{uploader.result.filename} · {formatFileSize(uploader.result.size)} · {uploader.result.content_type}</p></div><Link to="/dashboard"><Button variant="secondary">Genel bakışa dön</Button></Link></div>}
+        {uploader.result && <div className="upload-result"><span><Icon name="check" /></span><div><h3>Sözleşme Başarıyla Yüklendi</h3><p>{uploader.result.original_filename} · {formatFileSize(uploader.result.file_size)} · {uploader.result.mime_type}</p></div><Link to="/dashboard"><Button variant="secondary">Genel bakışa dön</Button></Link></div>}
       </Card>
       <aside className="upload-guide">
         <Card><span className="guide-icon"><Icon name="shield" /></span><h3>Güvenli işleme</h3><p>Dosyalarınız izole kullanıcı alanında saklanır ve yalnızca yetkili hesabınız tarafından erişilir.</p></Card>

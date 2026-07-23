@@ -38,10 +38,13 @@ export interface UserSession {
 }
 
 export interface UploadResponse {
-  filename: string;
-  size: number;
-  content_type: string;
-  message: string;
+  id: number;
+  original_filename: string;
+  stored_filename: string;
+  mime_type: string;
+  file_size: number;
+  status: string;
+  uploaded_at: string;
 }
 
 export interface Contract {
