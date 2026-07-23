@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useLegalKnowledgeBase } from "../hooks/useLegalKnowledgeBase";
@@ -17,6 +17,7 @@ const documentTypes: Array<{ value: LegalDocumentType; label: string }> = [
 export default function LegalKnowledgeBase() {
   const { user } = useAuth();
   const knowledgeBase = useLegalKnowledgeBase(Boolean(user?.is_admin));
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [documentType, setDocumentType] = useState<LegalDocumentType>("LAW");
@@ -39,6 +40,9 @@ export default function LegalKnowledgeBase() {
         publicationDate,
       });
       setFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
       setTitle("");
       setOfficialNumber("");
       setPublicationDate("");
@@ -61,7 +65,13 @@ export default function LegalKnowledgeBase() {
           <label>Kaynak<input value={source} onChange={(event) => setSource(event.target.value)} required /></label>
           <label>Resmî / karar numarası<input value={officialNumber} onChange={(event) => setOfficialNumber(event.target.value)} /></label>
           <label>Yayın tarihi<input type="date" value={publicationDate} onChange={(event) => setPublicationDate(event.target.value)} /></label>
-          <label>PDF veya DOCX<input type="file" accept=".pdf,.docx" onChange={(event) => setFile(event.target.files?.[0] ?? null)} required /></label>
+          <input ref={fileInputRef} hidden type="file" accept=".pdf,.docx" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
+          <div className="file-field">
+            <span className="file-field-label">PDF veya DOCX</span>
+            <button type="button" className="file-pick-btn" onClick={() => fileInputRef.current?.click()}>
+              {file ? file.name : "Dosya Seç"}
+            </button>
+          </div>
           <Button type="submit" icon="plus" disabled={knowledgeBase.isUploading || !file}>{knowledgeBase.isUploading ? "Yükleniyor..." : "Bilgi tabanına ekle"}</Button>
         </form>
 
