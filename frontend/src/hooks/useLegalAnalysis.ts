@@ -62,10 +62,15 @@ export function useLegalAnalysis(contractId: number | null): UseLegalAnalysisRes
     setIsAnalyzing(true);
     setError("");
     try {
-      const response = await api.post<LegalAnalysis>(`/contracts/${contractId}/analyze`, {
+      const response = await api.post<any>(`/contracts/${contractId}/analyze`, {
         analysis_type: "full",
       });
-      setAnalysis(response.data);
+      if (response.data && response.data.status === "insufficient_context") {
+        setError(response.data.message || "Güvenilir analiz için yeterli mevzuat/kaynak bulunamadı.");
+        setAnalysis(null);
+      } else {
+        setAnalysis(response.data);
+      }
     } catch (requestError) {
       const detail = (requestError as { response?: { data?: { detail?: string } } })
         .response?.data?.detail;
@@ -80,7 +85,12 @@ export function useLegalAnalysis(contractId: number | null): UseLegalAnalysisRes
     setIsAnalyzing(true);
     setError("");
     try {
-      apply(await request());
+      const data = await request();
+      if (data && (data as any).status === "insufficient_context") {
+        setError((data as any).message || "Güvenilir analiz için yeterli mevzuat/kaynak bulunamadı.");
+        return false;
+      }
+      apply(data);
       return true;
     } catch (requestError) {
       const detail = (requestError as { response?: { data?: { detail?: string } } })

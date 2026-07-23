@@ -41,19 +41,22 @@ const tabs: Array<{ id: AnalysisTab; label: string }> = [
 ];
 
 function riskLabel(category: RiskCategory): string {
+  if (!category) return "Bilinmeyen";
   const labels: Record<RiskCategory, string> = {
     LOW: "Düşük",
     MEDIUM: "Orta",
     HIGH: "Yüksek",
     CRITICAL: "Kritik",
   };
-  return labels[category];
+  return labels[category] || "Bilinmeyen";
 }
 
 function RiskRing({ score, category }: { score: number; category: RiskCategory }) {
   const radius = 42;
   const circumference = 2 * Math.PI * radius;
-  return <div className={`risk-ring ring-${category.toLowerCase()}`}><svg viewBox="0 0 100 100" aria-label={`Risk puanı ${score}`}><circle className="risk-ring-track" cx="50" cy="50" r={radius} /><circle className="risk-ring-value" cx="50" cy="50" r={radius} strokeDasharray={circumference} strokeDashoffset={circumference * (1 - score / 100)} /></svg><div><strong>{score}</strong><span>/100</span></div></div>;
+  const safeCategory = category || "LOW";
+  const safeScore = score || 0;
+  return <div className={`risk-ring ring-${safeCategory.toLowerCase()}`}><svg viewBox="0 0 100 100" aria-label={`Risk puanı ${safeScore}`}><circle className="risk-ring-track" cx="50" cy="50" r={radius} /><circle className="risk-ring-value" cx="50" cy="50" r={radius} strokeDasharray={circumference} strokeDashoffset={circumference * (1 - safeScore / 100)} /></svg><div><strong>{safeScore}</strong><span>/100</span></div></div>;
 }
 
 function FindingList({ findings }: { findings: AnalysisFinding[] }) {
