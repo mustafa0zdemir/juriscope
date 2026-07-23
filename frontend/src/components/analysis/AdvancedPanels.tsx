@@ -45,11 +45,38 @@ export function CompliancePanel({ report }: { report: ComplianceReport }) {
         {report.findings.map((finding) => (
           <article className="compliance-card" key={finding.law}>
             <div className="risk-card-header"><h3>{finding.law}</h3><span>{complianceLabels[finding.status]}</span></div>
-            {finding.status === "NOT_APPLICABLE"
-              ? <p>Bu mevzuatın uygulanmasını gerektiren bir sözleşme ilişkisi tespit edilmedi.</p>
-              : finding.issues.length > 0
-              ? <ul>{finding.missing_clauses.map((clause) => <li key={clause}>{clauseTypeLabels[clause]} maddesi tespit edilemedi.</li>)}</ul>
-              : <p>Temel madde kategorilerinin tamamı tespit edildi.</p>}
+            {finding.status === "NOT_APPLICABLE" ? (
+              <p>Bu mevzuatın uygulanmasını gerektiren bir sözleşme ilişkisi tespit edilmedi.</p>
+            ) : (finding.missing_clauses.length > 0 || finding.issues.length > 0) ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", margin: "0.5rem 0" }}>
+                {finding.missing_clauses.length > 0 && (
+                  <div>
+                    <strong style={{ fontSize: "0.8rem", color: "var(--text-primary)" }}>Eksik Maddeler:</strong>
+                    <ul style={{ margin: "0.25rem 0", paddingLeft: "1.2rem" }}>
+                      {finding.missing_clauses.map((clause) => (
+                        <li key={clause} style={{ fontSize: "0.84rem", color: "var(--text-secondary)" }}>
+                          {clauseTypeLabels[clause] || clause} maddesi tespit edilemedi.
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {finding.issues.length > 0 && (
+                  <div>
+                    <strong style={{ fontSize: "0.8rem", color: "var(--text-primary)" }}>Uyumsuzluk Sorunları:</strong>
+                    <ul style={{ margin: "0.25rem 0", paddingLeft: "1.2rem" }}>
+                      {finding.issues.map((issue, idx) => (
+                        <li key={idx} style={{ fontSize: "0.84rem", color: "var(--text-secondary)" }}>
+                          {issue}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p>Temel madde kategorilerinin tamamı tespit edildi.</p>
+            )}
             <strong>Öneri</strong><p>{finding.recommendation}</p>
           </article>
         ))}
