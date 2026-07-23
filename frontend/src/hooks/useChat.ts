@@ -220,6 +220,9 @@ export function useChat(initialConversationId?: number | null): UseChatResult {
       setMessages((current) => {
         const last = current[current.length - 1];
         if (!last || last.role !== "assistant") return current;
+        if (!last.content.trim()) {
+          return current.slice(0, -1);
+        }
         return [...current.slice(0, -1), { ...last, isStreaming: false }];
       });
     } finally {
@@ -241,6 +244,9 @@ export function useChat(initialConversationId?: number | null): UseChatResult {
     setMessages((current) => {
       const last = current[current.length - 1];
       if (!last || last.role !== "assistant") return current;
+      if (!last.content.trim()) {
+        return current.slice(0, -1);
+      }
       return [...current.slice(0, -1), { ...last, isStreaming: false, error: "Üretim durduruldu" }];
     });
   }, []);
