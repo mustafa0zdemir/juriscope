@@ -14,6 +14,8 @@ import {
   RiskCategories,
 } from "../components/analysis/AdvancedPanels";
 import { Badge, Button, Icon, SectionHeader } from "../components/ui";
+import type { IconName } from "../components/ui/Icon";
+import type { AnalysisOperation } from "../hooks/useLegalAnalysis";
 import { contractStatusLabels, legalDocumentTypeLabels } from "../utils/labels";
 import "./ContractDetail.css";
 
@@ -39,6 +41,13 @@ const tabs: Array<{ id: AnalysisTab; label: string }> = [
   { id: "confidence", label: "Güven Düzeyi" },
   { id: "retrieval-path", label: "Kaynak Erişim Süreci" },
 ];
+
+const operationLabels: Record<AnalysisOperation, string> = {
+  general: "Genel analiz hazırlanıyor...",
+  explanation: "Gerekçeler hazırlanıyor...",
+  clauses: "Maddeler inceleniyor...",
+  compliance: "Uyum raporu hazırlanıyor...",
+};
 
 function riskLabel(category: RiskCategory): string {
   if (!category) return "Bilinmeyen";
@@ -109,6 +118,44 @@ function RecommendationList({ recommendations }: { recommendations: LegalRecomme
   );
 }
 
+function AnalysisActionCard({
+  title,
+  description,
+  icon,
+  isReady,
+  isBusy,
+  isAvailable,
+  loadingLabel,
+  onClick,
+}: {
+  title: string;
+  description: string;
+  icon: IconName;
+  isReady: boolean;
+  isBusy: boolean;
+  isAvailable: boolean;
+  loadingLabel?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className="analysis-action-card"
+      disabled={!isReady || isBusy}
+      onClick={onClick}
+      type="button"
+    >
+      <span className="analysis-action-icon"><Icon name={icon} size={20} /></span>
+      <span className="analysis-action-copy">
+        <strong>{loadingLabel ?? title}</strong>
+        <small>{description}</small>
+      </span>
+      <span className={`analysis-action-state ${isAvailable ? "is-ready" : ""}`}>
+        {isAvailable ? "Sonuç hazır" : "İncelemeyi başlat"}
+      </span>
+    </button>
+  );
+}
+
 export default function ContractDetail() {
   const { contractId } = useParams();
   const numericContractId = contractId ? Number(contractId) : null;
@@ -120,6 +167,7 @@ export default function ContractDetail() {
     compliance,
     isLoading,
     isAnalyzing,
+    activeOperation,
     error,
     analyze,
     explain,
@@ -134,21 +182,132 @@ export default function ContractDetail() {
   if (!contract) return <div className="contract-loading">{error || "Sözleşme bulunamadı"}</div>;
 
   const isReady = contract.status === "embedded";
+  const operationStatus = activeOperation ? operationLabels[activeOperation] : "";
+
+  const handleGeneralAnalysis = async () => {
+    const succeeded = await analyze();
+    if (succeeded) setActiveTab("summary");
+  };
+
+  const handleExplanation = async () => {
+    if (explanation) {
+      setActiveTab("explain");
+      return;
+    }
+    const succeeded = await explain();
+    if (succeeded) setActiveTab("explain");
+  };
+
+  const handleClauses = async () => {
+    if (clauses) {
+      setActiveTab("clauses");
+      return;
+    }
+    const succeeded = await detectClauses();
+    if (succeeded) setActiveTab("clauses");
+  };
+
+  const handleCompliance = async () => {
+    if (compliance) {
+      setActiveTab("compliance");
+      return;
+    }
+    const succeeded = await checkCompliance();
+    if (succeeded) setActiveTab("compliance");
+  };
 
   return (
     <div className="contract-detail-page">
       <Link className="back-link" to="/dashboard">← Genel bakışa dön</Link>
-      <SectionHeader eyebrow="Sözleşme Detayı" title={contract.original_filename} description="Belge bilgileri, yapay zekâ destekli hukuki analiz, dayanaklar ve mevzuat uyumu sonuçları." action={<div className="analysis-actions"><Button disabled={!isReady || isAnalyzing} icon="sparkle" onClick={() => void analyze()}>{isAnalyzing ? "Hukuki analiz yapılıyor..." : "Hukuki Analizi Başlat"}</Button><Button variant="secondary" disabled={!isReady || isAnalyzing} icon="shield" onClick={() => void explain().then((succeeded) => succeeded && setActiveTab("explain"))}>Gerekçeli Analiz</Button><Button variant="secondary" disabled={!isReady || isAnalyzing} icon="search" onClick={() => void detectClauses().then((succeeded) => succeeded && setActiveTab("clauses"))}>Maddeleri İncele</Button><Button variant="secondary" disabled={!isReady || isAnalyzing} icon="check" onClick={() => void checkCompliance().then((succeeded) => succeeded && setActiveTab("compliance"))}>Mevzuat Uyumu</Button></div>} />
+      <SectionHeader
+        eyebrow="Sözleşme Detayı"
+        title={contract.original_filename}
+        description="Belge bilgileri, yapay zekâ destekli hukuki analiz, dayanaklar ve mevzuat uyumu sonuçları."
+        action={(
+          <Button
+            className="analysis-primary-button"
+            disabled={!isReady || isAnalyzing}
+            icon="sparkle"
+            onClick={() => void handleGeneralAnalysis()}
+          >
+            {activeOperation === "general"
+              ? operationLabels.general
+              : analysis ? "Analizi Yenile" : "Genel Hukuki Analizi Başlat"}
+          </Button>
+        )}
+      />
 
-      <section className="contract-meta-grid" aria-label="Sözleşme bilgileri">
-        <div><Icon name="document" /><span>Dosya Bilgisi</span><strong>{contract.mime_type.split("/").at(-1)?.toUpperCase()}</strong></div>
-        <div><Icon name="clock" /><span>Yükleme Tarihi</span><strong>{new Date(contract.uploaded_at).toLocaleDateString("tr-TR")}</strong></div>
-        <div><Icon name="activity" /><span>Belge Durumu</span><Badge tone={isReady ? "success" : "warning"}>{contractStatusLabels[contract.status] ?? contract.status}</Badge></div>
-        <div><Icon name="check" /><span>Vektör Dizinleme</span><strong>{isReady ? "Tamamlandı" : "Bekliyor"}</strong></div>
-        <div><Icon name="shield" /><span>Mevzuat Uyumu</span><strong>{compliance ? `${compliance.compliance_score}/100` : "—"}</strong></div>
-        <div><Icon name="alert" /><span>Risk</span><strong>{analysis ? `${analysis.risk_score}/100` : "—"}</strong></div>
-        <div><Icon name="sparkle" /><span>Analiz Durumu</span><strong>{analysis ? "Tamamlandı" : "Bekliyor"}</strong></div>
-        <div><Icon name="download" /><span>Dosya Boyutu</span><strong>{(contract.file_size / 1024).toFixed(1)} KB</strong></div>
+      <section className="contract-meta-groups" aria-label="Sözleşme bilgileri">
+        <article className="contract-meta-group">
+          <h2>Belge Bilgileri</h2>
+          <div className="contract-meta-items">
+            <div><Icon name="document" /><span>Dosya Türü</span><strong>{contract.mime_type.split("/").at(-1)?.toUpperCase()}</strong></div>
+            <div><Icon name="clock" /><span>Yükleme Tarihi</span><strong>{new Date(contract.uploaded_at).toLocaleDateString("tr-TR")}</strong></div>
+            <div><Icon name="download" /><span>Dosya Boyutu</span><strong>{(contract.file_size / 1024).toFixed(1)} KB</strong></div>
+          </div>
+        </article>
+        <article className="contract-meta-group">
+          <h2>İşlem Durumu</h2>
+          <div className="contract-meta-items">
+            <div><Icon name="activity" /><span>Belge Durumu</span><Badge tone={isReady ? "success" : "warning"}>{contractStatusLabels[contract.status] ?? contract.status}</Badge></div>
+            <div><Icon name="check" /><span>Vektör Dizinleme</span><strong>{isReady ? "Tamamlandı" : "Bekliyor"}</strong></div>
+            <div><Icon name="sparkle" /><span>Analiz Durumu</span><strong>{analysis ? "Tamamlandı" : "Bekliyor"}</strong></div>
+          </div>
+        </article>
+        <article className="contract-meta-group contract-meta-results">
+          <h2>Değerlendirme Sonuçları</h2>
+          <div className="contract-meta-items">
+            <div><Icon name="alert" /><span>Risk Puanı</span><strong>{analysis ? `${analysis.risk_score}/100` : "—"}</strong></div>
+            <div><Icon name="shield" /><span>Mevzuat Uyumu</span><strong>{compliance ? `${compliance.compliance_score}/100` : "—"}</strong></div>
+          </div>
+        </article>
+      </section>
+
+      <section className="analysis-command-center" aria-busy={isAnalyzing} aria-labelledby="additional-reviews-title">
+        <div className="analysis-command-header">
+          <div>
+            <span className="eyebrow">Ek İncelemeler</span>
+            <h2 id="additional-reviews-title">Analiz kapsamını ayrıntılandırın</h2>
+            <p>İhtiyacınıza göre hukuki gerekçeleri, sözleşme maddelerini veya mevzuat uyumunu ayrıca inceleyin.</p>
+          </div>
+          <p className="analysis-operation-status" aria-live="polite">{operationStatus}</p>
+        </div>
+        <div className="analysis-action-grid">
+          <AnalysisActionCard
+            description="Sonucun dayandığı sözleşme, kanun ve emsal karar kaynaklarını görüntüler."
+            icon="shield"
+            isAvailable={Boolean(explanation)}
+            isBusy={isAnalyzing}
+            isReady={isReady}
+            loadingLabel={activeOperation === "explanation" ? operationLabels.explanation : undefined}
+            onClick={() => void handleExplanation()}
+            title="Analiz Gerekçeleri ve Dayanaklar"
+          />
+          <AnalysisActionCard
+            description="Fesih, ödeme, gizlilik ve benzeri hükümleri sınıflandırarak inceler."
+            icon="search"
+            isAvailable={Boolean(clauses)}
+            isBusy={isAnalyzing}
+            isReady={isReady}
+            loadingLabel={activeOperation === "clauses" ? operationLabels.clauses : undefined}
+            onClick={() => void handleClauses()}
+            title="Sözleşme Maddelerini İncele"
+          />
+          <AnalysisActionCard
+            description="Sözleşmeyi ilgili mevzuat başlıkları bakımından ön değerlendirmeye alır."
+            icon="check"
+            isAvailable={Boolean(compliance)}
+            isBusy={isAnalyzing}
+            isReady={isReady}
+            loadingLabel={activeOperation === "compliance" ? operationLabels.compliance : undefined}
+            onClick={() => void handleCompliance()}
+            title="Mevzuata Uygunluk Raporu"
+          />
+        </div>
+        <p className="legal-disclaimer">
+          <Icon name="alert" size={16} />
+          Bu ekran yapay zekâ destekli ön değerlendirme sunar. Sonuçlar bağlayıcı hukuki görüş niteliğinde değildir ve uzman incelemesinin yerine geçmez.
+        </p>
       </section>
 
       {!isReady && <p className="analysis-notice">Sözleşme embedding işlemi tamamlandığında analiz başlatılabilir.</p>}
@@ -212,7 +371,7 @@ export default function ContractDetail() {
             )}
             {activeTab === "explain" && (explanation
               ? <ReasoningPanel explanation={explanation} />
-              : <p className="analysis-empty">Açıklama için “Açıklanabilir Analiz” işlemini başlatın.</p>)}
+              : <p className="analysis-empty">Açıklama için “Analiz Gerekçeleri ve Dayanaklar” incelemesini başlatın.</p>)}
             {activeTab === "evidence" && (explanation
               ? <EvidencePanel explanation={explanation} />
               : <p className="analysis-empty">Hukuki dayanaklar henüz oluşturulmadı.</p>)}
@@ -224,7 +383,7 @@ export default function ContractDetail() {
               : <p className="analysis-empty">Kaynak erişim süreci henüz oluşturulmadı.</p>)}
             {activeTab === "clauses" && (clauses
               ? <ClauseExplorer result={clauses} />
-              : <p className="analysis-empty">Madde incelemesi için “Maddeleri İncele” işlemini başlatın.</p>)}
+              : <p className="analysis-empty">Madde incelemesi için “Sözleşme Maddelerini İncele” işlemini başlatın.</p>)}
             {activeTab === "compliance" && (compliance
               ? <><CompliancePanel report={compliance} /><div className="risk-category-section"><h3>Risk Kategorileri</h3><RiskCategories tags={compliance.risk_tags} /></div></>
               : <p className="analysis-empty">Mevzuat uyumu raporu için denetimi başlatın.</p>)}
