@@ -1,26 +1,143 @@
 # Sözleşme Analizi Sistemi
 
-Production-ready sözleşme analizi platformu. Backend FastAPI, frontend React + Vite ile geliştirilmektedir.
+Sözleşme Analizi Sistemi; sözleşmeleri, mevzuatı ve emsal kararları aynı bilgi
+erişim sürecinde buluşturan, kaynak gösteren yapay zekâ destekli bir hukuk
+inceleme platformudur.
 
-## Gereksinimler
+Sistem bir sözleşmeyi yalnızca dil modelinin genel bilgisiyle yorumlamaz.
+Kullanıcının yüklediği sözleşmeden ve yönetici tarafından oluşturulan merkezi
+hukuk bilgi tabanından ilgili metinleri bulur, bu metinlerden kontrollü bir
+bağlam oluşturur ve cevabı dayandığı kaynaklarla birlikte üretir.
+
+> Bu proje bir model eğitme projesi değildir. Yeni belgeler modele öğretilmez;
+> parçalanır, vektörleştirilir ve sorgu sırasında erişilebilen bilgi tabanına
+> eklenir. Bu yaklaşım Retrieval-Augmented Generation (RAG) olarak adlandırılır.
+
+## Proje Hangi Problemi Çözüyor?
+
+Uzun sözleşmelerde riskli hükümleri, eksik maddeleri ve ilgili mevzuatı manuel
+olarak bulmak zaman alır. Genel amaçlı bir dil modeline doğrudan soru sormak ise
+kaynaksız veya sözleşmeyle ilgisiz cevaplar üretebilir.
+
+Bu sistem:
+
+- Kullanıcının sözleşmesini güvenli biçimde saklar ve işlenebilir parçalara ayırır.
+- Anlamsal arama ile kesin kelime eşleşmesini birlikte kullanarak ilgili maddeleri bulur.
+- Sözleşme metnini kanun ve emsal karar kaynaklarıyla birlikte değerlendirir.
+- Üretilen cevabın hangi sözleşme bölümüne veya hukuki kaynağa dayandığını gösterir.
+- Yetersiz kaynak bulunduğunda cevap uydurmak yerine kullanıcıyı bilgilendirir.
+- Kullanıcıların yalnızca kendi sözleşmelerine erişebilmesini sağlar.
+
+## Kullanıcı Sistemi Nasıl Kullanır?
+
+1. Yönetici, kanun ve emsal karar belgelerini merkezi hukuk bilgi tabanına yükler.
+2. Kullanıcı PDF veya DOCX sözleşmesini sisteme yükler.
+3. Sistem belgeden metni çıkarır, metni parçalara ayırır ve vektör dizinine ekler.
+4. Kullanıcı sözleşme hakkında doğal dilde soru sorar veya hukuki analiz başlatır.
+5. Hybrid Search, sözleşme ve hukuk bilgi tabanındaki en ilgili metinleri bulur.
+6. Cross Encoder, bulunan adayları soruyla ilişkisine göre yeniden sıralar.
+7. RAG orkestrasyonu güvenli bağlamı ve model prompt'unu oluşturur.
+8. Dil modeli yalnızca sağlanan bağlama dayanarak cevap üretir.
+9. Cevap; sözleşme bölümü, sayfa, kanun veya karar bilgileriyle birlikte gösterilir.
+
+## RAG Akışı
+
+```text
+Kullanıcı sorusu
+    ↓
+Kullanıcı ve sözleşme yetkisi
+    ↓
+Sözleşme metinleri + merkezi hukuk bilgi tabanı
+    ↓
+Vector Search (Qdrant) + Keyword Search (BM25)
+    ↓
+Skor normalizasyonu ve tekrarların kaldırılması
+    ↓
+Cross Encoder ile yeniden sıralama
+    ↓
+Context Builder + Prompt Builder
+    ↓
+Güvenilirlik kontrolleri
+    ↓
+Dil modeliyle cevap üretimi
+    ↓
+Cevap + kaynaklar + güven bilgileri
+```
+
+## Temel Yetenekler
+
+| Alan | Sağlanan özellikler |
+|------|----------------------|
+| Belge yönetimi | PDF/DOC/DOCX yükleme, MinIO saklama, metin çıkarma, chunking ve embedding |
+| Bilgi erişimi | Vector Search, BM25, Hybrid Search ve Cross Encoder re-ranking |
+| Hukuk bilgi tabanı | Yönetici kontrollü kanun, yönetmelik ve emsal karar yükleme |
+| RAG | Çok kaynaklı context, merkezi prompt, citation ve yetersiz kaynak kontrolü |
+| Hukuki analiz | Risk puanı, eksik/belirsiz/tek taraflı maddeler ve öneriler |
+| Gelişmiş analiz | Madde sınıflandırma, mevzuat uyumu ve sözleşme karşılaştırma |
+| Açıklanabilirlik | Confidence score, evidence, reasoning ve retrieval path |
+| Sohbet | Streaming cevap, konuşma geçmişi, Markdown ve kaynak kartları |
+| Güvenlik | JWT, refresh token, hesap kilitleme, oturum yönetimi ve kullanıcı izolasyonu |
+
+## Mimari Bileşenler
+
+```text
+React + TypeScript
+        ↓ HTTP / SSE
+FastAPI API Katmanı
+        ↓
+Service / RAG Orkestrasyon Katmanı
+        ├── PostgreSQL: kullanıcılar, sözleşmeler, chunk'lar ve konuşmalar
+        ├── MinIO: sözleşme ve hukuk belgelerinin dosyaları
+        ├── Qdrant: sözleşme ve hukuk vektörleri
+        ├── BGE-M3: sorgu ve belge embedding'leri
+        ├── BGE Reranker: sonuçların yeniden sıralanması
+        └── Gemini: nihai doğal dil cevabının üretilmesi
+```
+
+Backend; API, service, repository, provider, model ve schema katmanlarına
+ayrılmıştır. İş kuralları service katmanında, veri erişimi repository
+katmanında, harici sistem entegrasyonları provider sınıflarında tutulur.
+
+## Yerel ve Harici Çalışan Bileşenler
+
+Mevcut sürümde belge saklama, parsing, chunking, embedding, BM25, Qdrant,
+re-ranking, context oluşturma, citation ve güvenilirlik kontrolleri yerel
+ortamda çalışır. Nihai cevap üretimi Gemini API üzerinden gerçekleştirildiği
+için mevcut yapı **yerel retrieval + harici generation** mimarisidir.
+
+Tamamen yerel kullanım istendiğinde mevcut `LLMProvider` arayüzüne Ollama
+üzerinden çalışan bir provider eklenebilir. Bu değişiklik retrieval, hukuk
+bilgi tabanı veya frontend mimarisinin yeniden yazılmasını gerektirmez.
+
+## Proje Durumu
+
+Proje yerel geliştirme ve demo ortamında çalışan kapsamlı bir RAG
+uygulamasıdır. Backend testleri, frontend lint ve production build kontrolleri
+bulunur. Canlı ortam kullanımı öncesinde gerçek servis health check'leri,
+deployment ayarları, secret yönetimi ve uçtan uca testler ayrıca
+tamamlanmalıdır.
+
+---
+
+## Teknik Kurulum
+
+### Gereksinimler
 
 - Docker & Docker Compose
 - Node.js 18+
 - Python 3.13+ (lokal backend geliştirmesi için)
 
----
-
-## Servisleri Başlatma
+### Backend Servislerini Başlatma
 
 ```bash
-# Tüm backend servislerini başlat (backend + postgres + minio)
-docker-compose up -d --build
+# Backend, PostgreSQL, MinIO ve Qdrant servislerini başlat
+docker compose up -d --build
 
 # Servis loglarını izle
-docker-compose logs -f
+docker compose logs -f
 
 # Servisleri durdur
-docker-compose down
+docker compose down
 ```
 
 ---
@@ -100,7 +217,7 @@ bilgileri normalde kapalıdır ve üretimde yalnızca teşhis amacıyla açılma
 
 ```json
 {
-  "question": "4857 sayılı Kanun'un 17. maddesindeki bildirim süresi nedir?",
+  "query": "4857 sayılı Kanun'un 17. maddesindeki bildirim süresi nedir?",
   "contract_ids": [12],
   "top_k": 5,
   "search_mode": "hybrid",
@@ -499,10 +616,11 @@ LEGAL_RERANK_TOP_N=5
 Frontend'deki `/legal-kb` ekranı yalnızca admin kullanıcıya gösterilir. Bu
 ekrandan belge yükleme, listeleme, detay görüntüleme ve silme yapılabilir.
 
-### RAG Orchestrator (Sprint 9A)
+### RAG Orkestrasyon Katmanı
 
-Sprint 9A, Retrieval katmanını henüz bir LLM çağrısı yapmadan üretime hazır bir
-RAG isteğine dönüştürür. `RAGService` aşağıdaki akışı orkestre eder:
+Retrieval sonuçları bir LLM çağrısından bağımsız olarak güvenli ve
+kaynaklandırılmış bir RAG isteğine dönüştürülür. `RAGService` aşağıdaki akışı
+orkestre eder:
 
 ```
 Kullanıcı sorusu
@@ -532,17 +650,17 @@ Her iki endpoint de `question`, opsiyonel `contract_ids` ve `top_k` alır.
 Prompt Preview yanıtı `retrieved_chunks`, `constructed_context`,
 `constructed_prompt` ve `citations` döner.
 
-### Gemini LLM Integration (Sprint 9B)
+### Gemini ile Cevap Üretimi
 
-Sprint 9B ile `GeminiProvider` ve `LLMService` eklenmiştir. RAG query akışı
-şu şekildedir:
+`GeminiProvider` ve `LLMService`, provider arayüzü üzerinden RAG akışına
+bağlanır. Sorgu akışı şu şekildedir:
 
 ```
 Semantic Retrieval
     → ContextBuilder
     → PromptBuilder
     → LLMService
-    → GeminiProvider
+    → Seçili LLM Provider (mevcut sürümde Gemini)
     → CitationBuilder
     → Final Response
 ```
@@ -579,10 +697,10 @@ Bu mimari sayesinde eski konuşmalar listelenebilir, detaylarına bakılabilir v
 
 ### Streaming Chat ve React Arayüzü
 
-Sprint 11 ile gerçek zamanlı sohbet deneyimi eklenmiştir. `/chat` ekranında
-conversation listesi, geçmiş mesajlar, Markdown cevaplar ve citation kartları
-görüntülenir. Kullanıcı yeni sohbet oluşturabilir, sohbet silebilir, geçmişi
-açabilir, cevabı kopyalayabilir veya üretimi durdurabilir.
+Gerçek zamanlı sohbet deneyiminde `/chat` ekranı conversation listesini,
+geçmiş mesajları, Markdown cevapları ve citation kartlarını gösterir. Kullanıcı
+yeni sohbet oluşturabilir, sohbet silebilir, geçmişi açabilir, cevabı
+kopyalayabilir veya üretimi durdurabilir.
 
 Streaming akışı:
 
@@ -626,37 +744,37 @@ tabloları `react-markdown` ve `remark-gfm` ile render edilir.
 ### Migration Çalıştırma (Tüm migration'ları uygula)
 
 ```bash
-docker-compose exec backend alembic upgrade head
+docker compose exec backend alembic upgrade head
 ```
 
 ### Migration Oluşturma (Yeni bir değişiklik sonrası)
 
 ```bash
-docker-compose exec backend alembic revision --autogenerate -m "açıklama"
+docker compose exec backend alembic revision --autogenerate -m "açıklama"
 ```
 
 ### Belirli Bir Revision'a Gitme
 
 ```bash
-docker-compose exec backend alembic upgrade <revision_id>
-docker-compose exec backend alembic downgrade <revision_id>
+docker compose exec backend alembic upgrade <revision_id>
+docker compose exec backend alembic downgrade <revision_id>
 ```
 
 ### Veritabanını Sıfırlama
 
 ```bash
 # Tüm migration'ları geri al
-docker-compose exec backend alembic downgrade base
+docker compose exec backend alembic downgrade base
 
 # Tekrar uygula
-docker-compose exec backend alembic upgrade head
+docker compose exec backend alembic upgrade head
 ```
 
 ### Migration Geçmişini Görme
 
 ```bash
-docker-compose exec backend alembic history --verbose
-docker-compose exec backend alembic current
+docker compose exec backend alembic history --verbose
+docker compose exec backend alembic current
 ```
 
 ---
@@ -770,7 +888,6 @@ Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
 | POST | `/api/v1/upload` | Dosya yükleme (PDF, DOC, DOCX) → MinIO |
 | GET | `/api/v1/contracts` | Kullanıcının sözleşmelerini listele |
 | GET | `/api/v1/contracts/{id}` | Tek sözleşme detayını getir |
-| GET | `/api/v1/contracts/{id}/content` | Sözleşme içeriğini getir |
 | GET | `/api/v1/contracts/{id}/content` | Sözleşme içeriğini getir |
 | GET | `/api/v1/contracts/{id}/status` | İşleme durumunu getir |
 | GET | `/api/v1/contracts/{id}/chunks` | Sözleşmeye ait chunk'ları listele |
