@@ -1,144 +1,196 @@
 # Sözleşme Analizi Sistemi
 
-Sözleşme Analizi Sistemi; sözleşmeleri, mevzuatı ve emsal kararları aynı bilgi
-erişim sürecinde buluşturan, kaynak gösteren yapay zekâ destekli bir hukuk
-inceleme platformudur.
+Kaynaklarını göstererek sözleşme inceleyen, mevzuat uyumunu değerlendiren ve
+sözleşme sorularını RAG mimarisiyle cevaplayan yapay zekâ destekli hukuk
+platformu.
 
-Sistem bir sözleşmeyi yalnızca dil modelinin genel bilgisiyle yorumlamaz.
-Kullanıcının yüklediği sözleşmeden ve yönetici tarafından oluşturulan merkezi
-hukuk bilgi tabanından ilgili metinleri bulur, bu metinlerden kontrollü bir
-bağlam oluşturur ve cevabı dayandığı kaynaklarla birlikte üretir.
+Sistem, cevabı yalnızca dil modelinin genel bilgisine bırakmaz. Kullanıcının
+sözleşmesinden ve yönetici tarafından oluşturulan merkezi hukuk bilgi
+tabanından ilgili bölümleri bulur; güvenli bir bağlam hazırlar ve sonucu
+sözleşme maddeleri, kanunlar veya emsal kararlarla ilişkilendirerek sunar.
 
-> Bu proje bir model eğitme projesi değildir. Yeni belgeler modele öğretilmez;
-> parçalanır, vektörleştirilir ve sorgu sırasında erişilebilen bilgi tabanına
-> eklenir. Bu yaklaşım Retrieval-Augmented Generation (RAG) olarak adlandırılır.
+> **Önemli:** Bu uygulama yapay zekâ destekli ön değerlendirme aracıdır.
+> Üretilen sonuçlar bağlayıcı hukuki görüş değildir ve uzman incelemesinin
+> yerine geçmez.
 
-## Proje Hangi Problemi Çözüyor?
+## İçindekiler
 
-Uzun sözleşmelerde riskli hükümleri, eksik maddeleri ve ilgili mevzuatı manuel
-olarak bulmak zaman alır. Genel amaçlı bir dil modeline doğrudan soru sormak ise
-kaynaksız veya sözleşmeyle ilgisiz cevaplar üretebilir.
+- [Sistem Ne Yapar?](#sistem-ne-yapar)
+- [RAG Bu Projede Nasıl Çalışır?](#rag-bu-projede-nasıl-çalışır)
+- [Demo Senaryosu](#demo-senaryosu)
+- [Görsel Önizleme](#görsel-önizleme)
+- [Mimari](#mimari)
+- [Hızlı Başlangıç](#hızlı-başlangıç)
+- [API Dokümantasyonu](#api-dokümantasyonu)
+- [Proje Yapısı](#proje-yapısı)
 
-Bu sistem:
+## Sistem Ne Yapar?
 
-- Kullanıcının sözleşmesini güvenli biçimde saklar ve işlenebilir parçalara ayırır.
-- Anlamsal arama ile kesin kelime eşleşmesini birlikte kullanarak ilgili maddeleri bulur.
-- Sözleşme metnini kanun ve emsal karar kaynaklarıyla birlikte değerlendirir.
-- Üretilen cevabın hangi sözleşme bölümüne veya hukuki kaynağa dayandığını gösterir.
-- Yetersiz kaynak bulunduğunda cevap uydurmak yerine kullanıcıyı bilgilendirir.
-- Kullanıcıların yalnızca kendi sözleşmelerine erişebilmesini sağlar.
+| Alan | Sağlanan yetenek |
+|------|------------------|
+| Sözleşme yönetimi | PDF, DOC ve DOCX yükleme; MinIO üzerinde saklama; metin çıkarma ve parçalama |
+| Kaynak bulma | Qdrant Vector Search, BM25 Keyword Search, Hybrid Search ve Cross Encoder re-ranking |
+| Hukuk bilgi tabanı | Yönetici kontrollü kanun, yönetmelik ve emsal karar yükleme |
+| Hukuki analiz | Risk puanı, eksik veya belirsiz maddeler, tek taraflı hükümler ve iyileştirme önerileri |
+| Gelişmiş inceleme | Madde sınıflandırma, mevzuat uyumu ve iki sözleşmeyi karşılaştırma |
+| Açıklanabilirlik | Güven puanı, hukuki dayanaklar, kanıtlar ve retrieval süreci |
+| Hukuk asistanı | Gerçek zamanlı cevap, sohbet geçmişi, Markdown ve kaynak kartları |
+| Güvenlik | JWT, refresh token, hesap kilitleme, oturum yönetimi ve kullanıcı bazlı veri izolasyonu |
 
-## Kullanıcı Sistemi Nasıl Kullanır?
+Sistem özellikle uzun belgelerde ilgili maddeyi bulma, madde ve kanun
+numaralarını yakalama, sözleşme hükümlerini mevzuat kaynaklarıyla birlikte
+değerlendirme ve cevabın dayanağını görünür kılma problemlerine odaklanır.
 
-1. Yönetici, kanun ve emsal karar belgelerini merkezi hukuk bilgi tabanına yükler.
-2. Kullanıcı PDF veya DOCX sözleşmesini sisteme yükler.
-3. Sistem belgeden metni çıkarır, metni parçalara ayırır ve vektör dizinine ekler.
-4. Kullanıcı sözleşme hakkında doğal dilde soru sorar veya hukuki analiz başlatır.
-5. Hybrid Search, sözleşme ve hukuk bilgi tabanındaki en ilgili metinleri bulur.
-6. Cross Encoder, bulunan adayları soruyla ilişkisine göre yeniden sıralar.
-7. RAG orkestrasyonu güvenli bağlamı ve model prompt'unu oluşturur.
-8. Dil modeli yalnızca sağlanan bağlama dayanarak cevap üretir.
-9. Cevap; sözleşme bölümü, sayfa, kanun veya karar bilgileriyle birlikte gösterilir.
+## RAG Bu Projede Nasıl Çalışır?
 
-## RAG Akışı
+Bu proje bir model eğitme veya fine-tuning projesi değildir. Yüklenen belgeler
+dil modeline yeniden öğretilmez. Belgeler parçalanır, embedding'leri üretilir ve
+sorgu sırasında erişilen bilgi tabanına eklenir. Bu yöntem
+**Retrieval-Augmented Generation (RAG)** olarak adlandırılır.
 
 ```text
 Kullanıcı sorusu
     ↓
-Kullanıcı ve sözleşme yetkisi
+JWT doğrulama ve sözleşme yetkisi
     ↓
-Sözleşme metinleri + merkezi hukuk bilgi tabanı
+Sözleşme parçaları + merkezi hukuk bilgi tabanı
     ↓
-Vector Search (Qdrant) + Keyword Search (BM25)
+Qdrant Vector Search + BM25 Keyword Search
     ↓
-Skor normalizasyonu ve tekrarların kaldırılması
+Skor normalizasyonu, tekilleştirme ve Cross Encoder re-ranking
     ↓
-Cross Encoder ile yeniden sıralama
+Context Builder + Prompt Builder + güvenilirlik kontrolleri
     ↓
-Context Builder + Prompt Builder
+Gemini ile cevap üretimi
     ↓
-Güvenilirlik kontrolleri
-    ↓
-Dil modeliyle cevap üretimi
-    ↓
-Cevap + kaynaklar + güven bilgileri
+Cevap + sözleşme/kanun/emsal karar kaynakları + güven bilgileri
 ```
 
-## Temel Yetenekler
+Yeterli ve güvenilir kaynak bulunamazsa sistem cevap uydurmak yerine bağlamın
+yetersiz olduğunu bildirir. Qdrant ve BM25 filtreleri, kullanıcının yalnızca
+kendi sözleşmeleri içinde arama yapabilmesini sağlar.
 
-| Alan | Sağlanan özellikler |
-|------|----------------------|
-| Belge yönetimi | PDF/DOC/DOCX yükleme, MinIO saklama, metin çıkarma, chunking ve embedding |
-| Bilgi erişimi | Vector Search, BM25, Hybrid Search ve Cross Encoder re-ranking |
-| Hukuk bilgi tabanı | Yönetici kontrollü kanun, yönetmelik ve emsal karar yükleme |
-| RAG | Çok kaynaklı context, merkezi prompt, citation ve yetersiz kaynak kontrolü |
-| Hukuki analiz | Risk puanı, eksik/belirsiz/tek taraflı maddeler ve öneriler |
-| Gelişmiş analiz | Madde sınıflandırma, mevzuat uyumu ve sözleşme karşılaştırma |
-| Açıklanabilirlik | Confidence score, evidence, reasoning ve retrieval path |
-| Sohbet | Streaming cevap, konuşma geçmişi, Markdown ve kaynak kartları |
-| Güvenlik | JWT, refresh token, hesap kilitleme, oturum yönetimi ve kullanıcı izolasyonu |
+## Demo Senaryosu
 
-## Mimari Bileşenler
+1. Yönetici hesabıyla hukuk bilgi tabanına kanun veya emsal karar belgesi yüklenir.
+2. Kullanıcı incelenecek sözleşmeyi PDF veya DOCX olarak yükler.
+3. Sistem metni çıkarır, parçalara ayırır, embedding üretir ve Qdrant'a kaydeder.
+4. Kullanıcı hukuk asistanında doğal dilde soru sorar veya sözleşme analizini başlatır.
+5. Hybrid Search ve re-ranking en ilgili sözleşme ve hukuk parçalarını seçer.
+6. Gemini, yalnızca hazırlanan RAG bağlamını kullanarak cevap üretir.
+7. Arayüz; cevabı, riskleri ve kullanılan kaynakları birlikte gösterir.
+
+Geliştirme ortamındaki demo yöneticisi:
+
+| Kullanıcı adı | Şifre |
+|---------------|-------|
+| `admin` | `admin123` |
+
+> Demo hesabı ve varsayılan servis şifreleri yalnızca yerel geliştirme içindir;
+> canlı ortamda mutlaka değiştirilmelidir.
+
+## Görsel Önizleme
+
+### Güvenli Giriş
+
+![Sözleşme Analizi Sistemi güvenli giriş ekranı](docs/screenshots/login.jpg)
+
+### Sistem Mimarisi
+
+![Sözleşme Analizi Sistemi çok kaynaklı RAG mimarisi](docs/architecture.svg)
+
+## Mimari
 
 ```text
-React + TypeScript
-        ↓ HTTP / SSE
+React 19 + TypeScript
+        ↓ HTTP / Server-Sent Events
 FastAPI API Katmanı
         ↓
-Service / RAG Orkestrasyon Katmanı
-        ├── PostgreSQL: kullanıcılar, sözleşmeler, chunk'lar ve konuşmalar
-        ├── MinIO: sözleşme ve hukuk belgelerinin dosyaları
-        ├── Qdrant: sözleşme ve hukuk vektörleri
-        ├── BGE-M3: sorgu ve belge embedding'leri
-        ├── BGE Reranker: sonuçların yeniden sıralanması
-        └── Gemini: nihai doğal dil cevabının üretilmesi
+Service ve RAG Orkestrasyon Katmanı
+        ├── PostgreSQL: kullanıcı, sözleşme, chunk, sohbet ve denetim kayıtları
+        ├── MinIO: sözleşme ve hukuk kaynaklarının dosyaları
+        ├── Qdrant: sözleşme ve hukuk kaynağı vektörleri
+        ├── BAAI/bge-m3: belge ve sorgu embedding'leri
+        ├── BGE Reranker: aday sonuçların yeniden sıralanması
+        └── Gemini: nihai doğal dil cevabı
 ```
 
 Backend; API, service, repository, provider, model ve schema katmanlarına
 ayrılmıştır. İş kuralları service katmanında, veri erişimi repository
-katmanında, harici sistem entegrasyonları provider sınıflarında tutulur.
+katmanında, harici servis entegrasyonları provider sınıflarında tutulur.
 
-## Yerel ve Harici Çalışan Bileşenler
+### Yerel ve Harici Bileşenler
 
-Mevcut sürümde belge saklama, parsing, chunking, embedding, BM25, Qdrant,
-re-ranking, context oluşturma, citation ve güvenilirlik kontrolleri yerel
-ortamda çalışır. Nihai cevap üretimi Gemini API üzerinden gerçekleştirildiği
-için mevcut yapı **yerel retrieval + harici generation** mimarisidir.
+Belge saklama, parsing, chunking, embedding, BM25, Qdrant, re-ranking, context
+oluşturma, citation ve güvenilirlik kontrolleri yerel ortamda çalışır. Nihai
+cevap Gemini API ile üretildiği için mevcut mimari **yerel retrieval + harici
+generation** modelidir.
 
-Tamamen yerel kullanım istendiğinde mevcut `LLMProvider` arayüzüne Ollama
-üzerinden çalışan bir provider eklenebilir. Bu değişiklik retrieval, hukuk
-bilgi tabanı veya frontend mimarisinin yeniden yazılmasını gerektirmez.
+`LLMProvider` soyutlaması sayesinde ileride Ollama tabanlı küçük bir yerel model
+eklenebilir; retrieval ve frontend katmanlarının yeniden yazılması gerekmez.
 
-## Proje Durumu
-
-Proje yerel geliştirme ve demo ortamında çalışan kapsamlı bir RAG
-uygulamasıdır. Backend testleri, frontend lint ve production build kontrolleri
-bulunur. Canlı ortam kullanımı öncesinde gerçek servis health check'leri,
-deployment ayarları, secret yönetimi ve uçtan uca testler ayrıca
-tamamlanmalıdır.
-
----
-
-## Teknik Kurulum
+## Hızlı Başlangıç
 
 ### Gereksinimler
 
-- Docker & Docker Compose
-- Node.js 18+
-- Python 3.13+ (lokal backend geliştirmesi için)
+- Docker Desktop ve Docker Compose
+- Node.js 20 veya üzeri
+- Gemini API anahtarı
+- Python 3.13 veya üzeri (backend'i Docker dışında geliştirmek için)
 
-### Backend Servislerini Başlatma
+### 1. Ortam Ayarlarını Hazırlayın
 
 ```bash
-# Backend, PostgreSQL, MinIO ve Qdrant servislerini başlat
+cp backend/.env.example backend/.env
+```
+
+`backend/.env` dosyasında en az aşağıdaki değeri tanımlayın:
+
+```env
+GEMINI_API_KEY=your-gemini-api-key
+```
+
+### 2. Backend ve Veri Servislerini Başlatın
+
+```bash
 docker compose up -d --build
+docker compose exec backend alembic upgrade head
+```
 
-# Servis loglarını izle
-docker compose logs -f
+### 3. Frontend'i Başlatın
 
-# Servisleri durdur
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### 4. Servisleri Kontrol Edin
+
+| Servis | Adres |
+|--------|-------|
+| Web arayüzü | [http://localhost:5173](http://localhost:5173) |
+| FastAPI Swagger | [http://localhost:8000/docs](http://localhost:8000/docs) |
+| Backend health | [http://localhost:8000/api/v1/health](http://localhost:8000/api/v1/health) |
+| LLM health | [http://localhost:8000/api/v1/health/llm](http://localhost:8000/api/v1/health/llm) |
+| MinIO yönetim konsolu | [http://localhost:9001](http://localhost:9001) |
+| Qdrant dashboard | [http://localhost:6333/dashboard](http://localhost:6333/dashboard) |
+
+Yararlı komutlar:
+
+```bash
+docker compose ps
+docker compose logs -f backend
 docker compose down
 ```
+
+## Proje Durumu
+
+Proje yerel geliştirme ve portföy demosu için çalışan kapsamlı bir hukuk RAG
+uygulamasıdır. Backend testleri ile frontend lint ve production build
+kontrolleri bulunur. Canlı ortam öncesinde production secret yönetimi, TLS,
+yönetilen veri servisleri, yedekleme ve uçtan uca yük testleri ayrıca
+tamamlanmalıdır.
 
 ---
 
