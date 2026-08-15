@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560" role="img" aria-labelledby="title description">
-  <title id="title">Sözleşme Analizi Sistemi mimarisi</title>
-  <description id="description">React arayüzünden FastAPI ve RAG orkestrasyonuna, oradan PostgreSQL, MinIO, Qdrant ve Gemini servislerine uzanan sistem akışı.</description>
+  <title id="title">Juriscope mimarisi</title>
+  <description id="description">Juriscope arayüzünden FastAPI ve RAG orkestrasyonuna, oradan PostgreSQL, MinIO, Qdrant ve Gemini servislerine uzanan sistem akışı.</description>
   <defs>
     <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
       <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#0f172a" flood-opacity="0.08"/>
@@ -10,7 +10,7 @@
     </marker>
   </defs>
   <rect width="1200" height="560" rx="24" fill="#f8fafc"/>
-  <text x="60" y="58" fill="#111827" font-family="Inter,Arial,sans-serif" font-size="26" font-weight="700">Çok Kaynaklı Hukuk RAG Mimarisi</text>
+  <text x="60" y="58" fill="#111827" font-family="Inter,Arial,sans-serif" font-size="26" font-weight="700">Juriscope · Çok Kaynaklı Hukuk RAG Mimarisi</text>
   <text x="60" y="88" fill="#64748b" font-family="Inter,Arial,sans-serif" font-size="15">Sözleşme ve hukuk kaynaklarından doğrulanabilir cevap üretim akışı</text>
 
   <g filter="url(#shadow)">

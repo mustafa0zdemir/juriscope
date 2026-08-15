@@ -11,7 +11,7 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
-    app_name: str = "Sozlesme Analizi Sistemi"
+    app_name: str = "Juriscope"
     app_version: str = "0.1.0"
     debug: bool = False
 

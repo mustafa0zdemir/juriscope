@@ -66,10 +66,10 @@ export default function Register() {
   return (
     <div className="login-page">
       <section className="login-brand-panel">
-        <div className="login-brand"><span>S</span><strong>Sözleşme Analizi Sistemi</strong></div>
-        <div className="login-value"><p>GÜVENLİ HESAP YÖNETİMİ</p><h1>Hukuki verilerinizi<br />güvenle yönetin.</h1><span>Her kullanıcı yalnızca kendi sözleşmelerine ve sohbet kayıtlarına erişebilir.</span></div>
+        <div className="login-brand"><span>J</span><strong>Juriscope</strong></div>
+        <div className="login-value"><p>YAPAY ZEKÂ DESTEKLİ SÖZLEŞME İNCELEME PLATFORMU</p><h1>Hukuki verilerinizi<br />güvenle yönetin.</h1><span>Her kullanıcı yalnızca kendi sözleşmelerine ve sohbet kayıtlarına erişebilir.</span></div>
         <ul><li><Icon name="shield" />Güçlü parola ve hesap kilitleme</li><li><Icon name="user" />Kullanıcı bazlı veri izolasyonu</li><li><Icon name="activity" />Denetlenebilir güvenlik olayları</li></ul>
-        <small>© 2026 Sözleşme Analizi Sistemi</small>
+        <small>© 2026 Juriscope</small>
       </section>
       <div className="login-form-side"><div className="login-container">
         <div className="login-header"><p>Yeni çalışma alanı</p><h1>Hesap oluşturun</h1><span className="login-subtitle">Bilgileriniz güvenli oturum altyapısıyla korunur.</span></div>

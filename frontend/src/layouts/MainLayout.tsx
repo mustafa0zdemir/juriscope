@@ -18,7 +18,7 @@ export default function MainLayout() {
       <Navbar />
       <div className="layout-workspace">
         <header className="top-navbar">
-          <div><span className="topbar-product">Sözleşme Analizi</span><span className="topbar-divider" /><span>Yapay Zekâ Destekli Hukuk Platformu</span></div>
+          <div><span className="topbar-product">Juriscope</span><span className="topbar-divider" /><span>Yapay Zekâ Destekli Sözleşme İnceleme Platformu</span></div>
           <div className="topbar-actions"><span className={`system-pill system-${systemHealth}`} aria-live="polite"><i /> {healthLabel}</span><div className="topbar-avatar">{user?.full_name?.slice(0,1).toUpperCase() ?? "K"}</div></div>
         </header>
         <main className="main-content"><Outlet /></main>

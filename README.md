@@ -1,4 +1,6 @@
-# Sözleşme Analizi Sistemi
+# Juriscope
+
+**Yapay Zekâ Destekli Sözleşme İnceleme Platformu**
 
 Kaynaklarını göstererek sözleşme inceleyen, mevzuat uyumunu değerlendiren ve
 sözleşme sorularını RAG mimarisiyle cevaplayan yapay zekâ destekli hukuk
@@ -93,11 +95,11 @@ Geliştirme ortamındaki demo yöneticisi:
 
 ### Güvenli Giriş
 
-![Sözleşme Analizi Sistemi güvenli giriş ekranı](docs/screenshots/login.jpg)
+![Juriscope güvenli giriş ekranı](docs/screenshots/login.jpg)
 
 ### Sistem Mimarisi
 
-![Sözleşme Analizi Sistemi çok kaynaklı RAG mimarisi](docs/architecture.svg)
+![Juriscope çok kaynaklı RAG mimarisi](docs/architecture.svg)
 
 ## Mimari
 
