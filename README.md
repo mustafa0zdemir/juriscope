@@ -93,10 +93,6 @@ Geliştirme ortamındaki demo yöneticisi:
 
 ## Görsel Önizleme
 
-### Güvenli Giriş
-
-![Juriscope güvenli giriş ekranı](docs/screenshots/login.jpg)
-
 ### Sistem Mimarisi
 
 ![Juriscope çok kaynaklı RAG mimarisi](docs/architecture.svg)
